@@ -10,6 +10,11 @@ functions: getting source, player state, track number, track position, volume
 and more. The library is relatively compact and has a small enough memory
 footprint to run on the Arduino Uno and Duemilanove.
 
+** MKR1010 / WifiNINA uBlox NINA W10 : **
+For an WIFININA port, have a look this fork:
+Added Sonos upnp scan to find your sonos devices on your network
+Added a patched function parsing for TrackMetaData parsing (very loose!)
+
 **ESP8266:**  
 For an ESP8266 port, have a look this fork:
 [github.com/antonmeyer/sonos](https://github.com/antonmeyer/sonos)

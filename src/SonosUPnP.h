@@ -1,5 +1,5 @@
 /************************************************************************/
-/* Sonos UPnP, an UPnP based read/write remote control library, v1.1.   */
+/* Sonos UPnP, an UPnP based read/write remote control library, v2.1.   */
 /*                                                                      */
 /* This library is free software: you can redistribute it and/or modify */
 /* it under the terms of the GNU General Public License as published by */
@@ -15,23 +15,28 @@
 /* along with this library. If not, see <http://www.gnu.org/licenses/>. */
 /*                                                                      */
 /* Written by Thomas Mittet (code@lookout.no) January 2015.             */
+/*                                                                      */
+/* Modified for use with Wifi.h or WifiNINA.h for wireless Networking   */
+/* Added uPnP Network Scan function  Jay Fox 2020                       */
 /************************************************************************/
 
 #ifndef SonosUPnP_h
-#define SonosUPnP_h
+   #define SonosUPnP_h
 
 //#define SONOS_WRITE_ONLY_MODE
 
 #include <Arduino.h>
-#if (defined(__AVR__))
-  #include <avr/pgmspace.h>
-#else
-  #include <pgmspace.h>
-#endif
+//#if (defined(__AVR__))
+//  #include <avr/pgmspace.h>
+//#else
+//  #include <pgmspace.h>
+//#endif
+
 #ifndef SONOS_WRITE_ONLY_MODE
-#include "../../MicroXPath/src/MicroXPath_P.h"
+#include <MicroXPath_P.h>
 #endif
-#include "../../Ethernet/src/EthernetClient.h"
+#include <WiFiNINA.h>  // JV : Wireless Mkr1010
+#include <WiFiUdp.h>   // JV : UDP service
 
 // HTTP:
 #define HTTP_VERSION " HTTP/1.1\n"
@@ -59,6 +64,7 @@
 #define UPNP_MULTICAST_PORT 1900
 #define UPNP_MULTICAST_TIMEOUT_S 2
 #define UPNP_RESPONSE_TIMEOUT_MS 3000
+#define UPNP_DEVICE_SCAN "M-SEARCH * HTTP/1.1\nHOST: 239.255.255.250:1900\nMAN: \"ssdp:discover\"\nMX: 2\nST: urn:schemas-upnp-org:device:ZonePlayer:1\n\0"
 
 // UPnP tag data:
 #define SOAP_ACTION_START_TAG_START "<u:"
@@ -137,8 +143,8 @@
 #define SONOS_TAG_REMOVE_ALL_TRACKS_FROM_QUEUE "RemoveAllTracksFromQueue"
 #define SONOS_PLAYLIST_META_LIGHT_START "<EnqueuedURIMetaData></EnqueuedURIMetaData><DesiredFirstTrackNumberEnqueued>"
 #define SONOS_PLAYLIST_META_LIGHT_END "0</DesiredFirstTrackNumberEnqueued><EnqueueAsNext>1</EnqueueAsNext>"
-//#define SONOS_PLAYLIST_META_FULL_START "<EnqueuedURIMetaData>&lt;DIDL-Lite xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:upnp=&quot;urn:schemas-upnp-org:metadata-1-0/upnp/&quot; xmlns:r=&quot;urn:schemas-rinconnetworks-com:metadata-1-0/&quot; xmlns=&quot;urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/&quot;&gt;&lt;item id=&quot;SQ:0&quot; parentID=&quot;SQ:&quot; restricted=&quot;true&quot;&gt;&lt;dc:title&gt;"
-//#define SONOS_PLAYLIST_META_FULL_END "&lt;/dc:title&gt;&lt;upnp:class&gt;object.container.playlistContainer&lt;/upnp:class&gt;&lt;desc id=&quot;cdudn&quot; nameSpace=&quot;urn:schemas-rinconnetworks-com:metadata-1-0/&quot;&gt;RINCON_AssociatedZPUDN&lt;/desc&gt;&lt;/item&gt;&lt;/DIDL-Lite&gt;</EnqueuedURIMetaData><DesiredFirstTrackNumberEnqueued>0</DesiredFirstTrackNumberEnqueued><EnqueueAsNext>1</EnqueueAsNext>"
+#define SONOS_PLAYLIST_META_FULL_START "<EnqueuedURIMetaData>&lt;DIDL-Lite xmlns:dc=&quot;http://purl.org/dc/elements/1.1/&quot; xmlns:upnp=&quot;urn:schemas-upnp-org:metadata-1-0/upnp/&quot; xmlns:r=&quot;urn:schemas-rinconnetworks-com:metadata-1-0/&quot; xmlns=&quot;urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/&quot;&gt;&lt;item id=&quot;SQ:0&quot; parentID=&quot;SQ:&quot; restricted=&quot;true&quot;&gt;&lt;dc:title&gt;"
+#define SONOS_PLAYLIST_META_FULL_END "&lt;/dc:title&gt;&lt;upnp:class&gt;object.container.playlistContainer&lt;/upnp:class&gt;&lt;desc id=&quot;cdudn&quot; nameSpace=&quot;urn:schemas-rinconnetworks-com:metadata-1-0/&quot;&gt;RINCON_AssociatedZPUDN&lt;/desc&gt;&lt;/item&gt;&lt;/DIDL-Lite&gt;</EnqueuedURIMetaData><DesiredFirstTrackNumberEnqueued>0</DesiredFirstTrackNumberEnqueued><EnqueueAsNext>1</EnqueueAsNext>"
 
 // Track & source:
 /*
@@ -159,12 +165,28 @@
 #define SONOS_TAG_TRACK_DURATION "TrackDuration"
 #define SONOS_TAG_TRACK_URI "TrackURI"
 #define SONOS_TAG_REL_TIME "RelTime"
+#define SONOS_TAG_TRACKMETA "TrackMetaData" 
+
+
+#define SONOS_ATTRIB_TITLE "dc:title"
+#define SONOS_ATTRIB_CREATOR "dc:creator"
+#define SONOS_ATTRIB_ALBUM "upnp:album"
+#define SONOS_ATTRIB_ARTIST "r:albumArtist"
+
+// radio stream
+// r:streamContent : name artist & nummer
+// dc:title : radio title
+
+
 #define SONOS_SOURCE_UNKNOWN 0
 #define SONOS_SOURCE_FILE 1
 #define SONOS_SOURCE_HTTP 2
 #define SONOS_SOURCE_RADIO 3
 #define SONOS_SOURCE_LINEIN 4
 #define SONOS_SOURCE_MASTER 5
+#define SONOS_SOURCE_SPOTIFY 6
+#define SONOS_SOURCE_SPOTIFYSTATION 7
+#define SONOS_SOURCE_LOCALHTTP 8
 #define SONOS_SOURCE_FILE_SCHEME "x-file-cifs:"
 #define SONOS_SOURCE_HTTP_SCHEME "x-sonos-http:"
 #define SONOS_SOURCE_RADIO_SCHEME "x-rincon-mp3radio:"
@@ -172,6 +194,9 @@
 #define SONOS_SOURCE_LINEIN_SCHEME "x-rincon-stream:"
 #define SONOS_SOURCE_MASTER_SCHEME "x-rincon:"
 #define SONOS_SOURCE_QUEUE_SCHEME "x-rincon-queue:"
+#define SONOS_SOURCE_SPOTIFYSTATION_SCHEME "x-sonosprog-spotify:"
+#define SONOS_SOURCE_SPOTIFY_SCHEME "x-sonos-spotify:"
+#define SONOS_SOURCE_LOCALHTTP_SCHEME "http:"
 
 // Volume, bass & treble:
 /*
@@ -257,6 +282,19 @@
   <CurrentSpeed>1</CurrentSpeed>
 </u:GetTransportInfoResponse>
 */
+
+// new
+#define SONOS_TAG_GET_MEDIA_INFO "GetMediaInfo"
+#define SONOS_TAG_GET_MEDIA_INFO_RESPONSE "u:GetMediaInfoResponse"
+#define SONOS_TAG_MEDIUM_STATUS "PlayMedium"
+#define SONOS_MEDIUM_NONE 1
+#define SONOS_MEDIUM_NONE_VALUE "NONE"
+#define SONOS_MEDIUM_LINEIN 2
+#define SONOS_MEDIUM_LINEIN_VALUE "LINE-IN"
+#define SONOS_MEDIUM_NETWORK 3
+#define SONOS_MEDIUM_NETWORK_VALUE "NETWORK"
+#define SONOS_TAG_ARTIST_STATUS "CurrentURIMetaData"
+
 #define SONOS_TAG_GET_TRANSPORT_INFO "GetTransportInfo"
 #define SONOS_TAG_GET_TRANSPORT_INFO_RESPONSE "u:GetTransportInfoResponse"
 #define SONOS_TAG_CURRENT_TRANSPORT_STATE "CurrentTransportState"
@@ -273,14 +311,24 @@ struct TrackInfo
   uint32_t duration;
   uint32_t position;
   char *uri;
-};
+  };
+
+struct FullTrackInfo //. JV new
+{
+  uint16_t number;
+  char *duration;
+  char *position;
+  char *creator;
+  char *title;
+  char *album;
+  };
 
 class SonosUPnP
 {
 
   public:
 
-    SonosUPnP(EthernetClient client, void (*ethernetErrCallback)(void));
+    SonosUPnP(WiFiClient client);   // wireless
 
     void setAVTransportURI(IPAddress speakerIP, const char *scheme, const char *address);
     void seekTrack(IPAddress speakerIP, uint16_t index);
@@ -307,6 +355,7 @@ class SonosUPnP
     void addPlaylistToQueue(IPAddress speakerIP, uint16_t playlistIndex);
     void addTrackToQueue(IPAddress speakerIP, const char *scheme, const char *address);
     void removeAllTracksFromQueue(IPAddress speakerIP);
+    uint8_t CheckUPnP(IPAddress *List,int Listsize); // new JV uPnP IPlist check by SSDP over UDP
     
     #ifndef SONOS_WRITE_ONLY_MODE
     
@@ -317,13 +366,25 @@ class SonosUPnP
     void togglePause(IPAddress speakerIP);
     void toggleMute(IPAddress speakerIP);
     void toggleLoudness(IPAddress speakerIP);
+
+    uint8_t getState(IPAddress speakerIP,char *buf); // new JV : string passthrough
     uint8_t getState(IPAddress speakerIP);
-    uint8_t getPlayMode(IPAddress speakerIP);
+
+    uint8_t getMedium(IPAddress speakerIP,char *buf); // new JV  : string passthrough
+    uint8_t getMedium(IPAddress speakerIP); // new JV 
+
+    uint8_t getPlayMode(IPAddress speakerIP,char *buf); // new JV  : string passthrough
+    uint8_t getPlayMode(IPAddress speakerIP); 
+
     bool getRepeat(IPAddress speakerIP);
     bool getShuffle(IPAddress speakerIP);
     TrackInfo getTrackInfo(IPAddress speakerIP, char *uriBuffer, size_t uriBufferSize);
+    FullTrackInfo getFullTrackInfo(IPAddress speakerIP); // new JV - parse track info without TrackURI
     uint16_t getTrackNumber(IPAddress speakerIP);
     void getTrackURI(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize);
+    void getTrackCreator(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize); // new JV - parse XML Metadata attribute Creator
+    void getTrackTitle(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize); // new JV - parse XML Metadata attribute Title
+      void getTrackAlbum(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize); // new JV - parse XML Metadata attribute Album
     uint8_t getSource(IPAddress speakerIP);
     uint8_t getSourceFromURI(const char *uri);
     uint32_t getTrackDurationInSeconds(IPAddress speakerIP);
@@ -341,7 +402,7 @@ class SonosUPnP
 
   private:
 
-    EthernetClient ethClient;
+    WiFiClient ethClient;
 
     void (*ethernetErrCallback)(void);
     void seek(IPAddress speakerIP, const char *mode, const char *data);
@@ -355,14 +416,17 @@ class SonosUPnP
     void ethClient_write(const char *data);
     void ethClient_write_P(PGM_P data_P, char *buffer, size_t bufferSize);
     void ethClient_stop();
+    void readback_IP(IPAddress *IPa,char* buf,char pointer,char bufsize); // New JV : readback IP from (UDP)buffer
 
     #ifndef SONOS_WRITE_ONLY_MODE
 
     MicroXPath_P xPath;
     void ethClient_xPath(PGM_P *path, uint8_t pathSize, char *resultBuffer, size_t resultBufferSize);
+    void ethClient_xPath2(PGM_P *path, uint8_t pathSize, char *resultBuffer, size_t resultBufferSize); // modified version to search/parse in Metadata
     void upnpGetString(IPAddress speakerIP, uint8_t upnpMessageType, PGM_P action_P, const char *field, const char *value, PGM_P *path, uint8_t pathSize, char *resultBuffer, size_t resultBufferSize);
     uint32_t getTimeInSeconds(const char *time);
     uint32_t uiPow(uint16_t base, uint16_t exp);
+    uint8_t convertMedium(const char *input);
     uint8_t convertState(const char *input);
     uint8_t convertPlayMode(const char *input);
 

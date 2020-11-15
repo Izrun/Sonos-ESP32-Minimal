@@ -24,7 +24,7 @@
 #include "SonosUPnP.h"
 
 //#define DEBUG_XPATH 1  //serial print Data read and write to xPath
-#define DEBUG_XGEN 1       // serial print generic debug info
+//#define DEBUG_XGEN 1       // serial print generic debug info
 
 const char p_HttpVersion[] PROGMEM = HTTP_VERSION;
 const char p_HeaderHost[] PROGMEM = HEADER_HOST;
@@ -47,6 +47,20 @@ const char p_UpnpRenderingControlService[] PROGMEM = UPNP_RENDERING_CONTROL_SERV
 const char p_UpnpRenderingControlEndpoint[] PROGMEM = UPNP_RENDERING_CONTROL_ENDPOINT;
 const char p_UpnpDevicePropertiesService[] PROGMEM = UPNP_DEVICE_PROPERTIES_SERVICE;
 const char p_UpnpDevicePropertiesEndpoint[] PROGMEM = UPNP_DEVICE_PROPERTIES_ENDPOINT;
+
+const char p_GetZoneAttributesA [] = PROGMEM SONOS_TAG_GET_ZONE_ATTR;
+const char p_GetZoneAttributesR [] = PROGMEM SONOS_TAG_GET_ZONE_ATTR_RESPONSE;
+const char p_ZoneName[] = PROGMEM SONOS_TAG_ZONENAME ;
+const char p_GetZoneInfoA [] = PROGMEM SONOS_TAG_GET_ZONE_INFO;
+const char p_GetZoneInfoR [] = PROGMEM SONOS_TAG_GET_ZONE_INFO_RESPONSE;
+const char p_Serial[] = PROGMEM SONOS_TAG_SERIAL ;
+
+const char p_ZPSupportInfo[] = PROGMEM SONOS_GET_ZPSUPPORTINFO; 
+const char p_ZPInfo[] = PROGMEM SONOS_GET_ZPINFO; 
+const char p_ZPZone[] = PROGMEM SONOS_GET_ZPZONE;
+const char p_ZPLocalUID[] = PROGMEM SONOS_GET_ZPLOCALUID;
+const char p_ZPSerial[] = PROGMEM SONOS_GET_ZPSERIAL; 
+const char p_ZPSeriesID[] = PROGMEM SONOS_GET_ZPSERIESID; 
 
 const char p_Play[] PROGMEM = SONOS_TAG_PLAY;
 const char p_SourceRinconTemplate[] PROGMEM = SONOS_SOURCE_RINCON_TEMPLATE;
@@ -130,13 +144,28 @@ const char p_CurrentArtist[] PROGMEM = SONOS_TAG_ARTIST_STATUS;
 
 const char p_UPnPBroadcast[] PROGMEM = UPNP_DEVICE_SCAN;
 
-// new local Data Variables - is increasing footprint, but easies passing of char-string-info
+const char *p_MediaSource[SONOS_MAXSOURCE]={SONOS_SOURCE_UNKNOWN_SCHEME,SONOS_SOURCE_FILE_SCHEME , SONOS_SOURCE_SPOTIFY_SCHEME , SONOS_SOURCE_HTTP_SCHEME , SONOS_SOURCE_RADIO_SCHEME, SONOS_SOURCE_RADIO_AAC_SCHEME ,
+ SONOS_SOURCE_LINEIN_SCHEME, SONOS_SOURCE_MASTER_SCHEME , SONOS_SOURCE_QUEUE_SCHEME , SONOS_SOURCE_SPOTIFYSTATION_SCHEME , SONOS_SOURCE_LOCALHTTP_SCHEME };
+
+const char *p_MediaSourceName[SONOS_MAXSOURCE]={UNKNOWN_SCHEME,FILE_SCHEME ,  SPOTIFY_SCHEME ,HTTP_SCHEME , RADIO_SCHEME, RADIO_AAC_SCHEME , LINEIN_SCHEME, MASTER_SCHEME , QUEUE_SCHEME , 
+  SPOTIFYSTATION_SCHEME ,  LOCALHTTP_SCHEME };
+
+
+// new local Data Variables - is increasing footprint, but easies passing of extra char-string-info
 char CREATOR_BUFFER[76] = "\0";
 char ARTIST_BUFFER[76] = "\0";
 char TITLE_BUFFER[100] = "\0";
 char ALBUM_BUFFER[92] = "\0";
 char DURATION_BUFFER[16]= "\0";
 char POSITION_BUFFER[16]= "\0";
+char ZONE_BUFFER[32]= "\0";
+char UID_BUFFER[32]= "\0";
+char SERIAL_BUFFER[24]= "\0";
+char SERIESID_BUFFER[24]= "\0";
+char MEDIUM_BUFFER[16]= "\0";
+char STATUS_BUFFER[16]= "\0";
+char PLAYMODE_BUFFER[16]= "\0";
+char SOURCE_BUFFER[16]= "\0";
 
 SonosUPnP::SonosUPnP(WiFiClient client) // wireless adapted JV
 {
@@ -384,10 +413,52 @@ void SonosUPnP::toggleLoudness(IPAddress speakerIP)
   setLoudness(speakerIP, !getLoudness(speakerIP));
 }
 
+// JV
+// New function : fill Sonmosionfo Structure with info
+// 1. use parse HTTP:/[ip.nu.mb.er]:1400/status/zp command - 
+// 2.
+SonosInfo SonosUPnP::getSonosInfo(IPAddress speakerIP)
+{
+  SonosInfo ZP;
+ ZONE_BUFFER[0]=0; UID_BUFFER[0]=0;SERIAL_BUFFER[0]=0;SERIESID_BUFFER[0]=0; // set all buffers to string "0"
+  if (upnpGetzp(speakerIP) )
+  {
+    xPath.reset();
+    char infoBuffer[20] = "";
+    // Zone Info
+    ZP.zone = ZONE_BUFFER;
+    PGM_P zpath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPZone};
+    ethClient_xPath(zpath, 3, ZONE_BUFFER, sizeof(ZONE_BUFFER));
+    // Local UIDInfo
+    ZP.uid = UID_BUFFER;
+    PGM_P ypath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPLocalUID};
+    ethClient_xPath(ypath, 3, UID_BUFFER, sizeof(UID_BUFFER));
+    // Serial Info
+    ZP.serial = SERIAL_BUFFER;
+    PGM_P xpath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPSerial};
+    ethClient_xPath(xpath, 3, SERIAL_BUFFER, sizeof(SERIAL_BUFFER));
+    // Series Info
+    ZP.seriesid = SERIESID_BUFFER;
+    PGM_P wpath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPSeriesID};
+    ethClient_xPath(wpath, 3, SERIESID_BUFFER, sizeof(SERIESID_BUFFER));
+  }
+  ethClient_stop();
+  ZP.status = STATUS_BUFFER;
+  getState(speakerIP,STATUS_BUFFER);
+  ZP.medium = MEDIUM_BUFFER;
+  getMedium(speakerIP,MEDIUM_BUFFER);
+  ZP.source = SOURCE_BUFFER;
+  getSource(speakerIP,SOURCE_BUFFER);
+  ZP.playmode = PLAYMODE_BUFFER;
+  getPlayMode(speakerIP,PLAYMODE_BUFFER);
+  return ZP;
+}
+
+
+
 uint8_t SonosUPnP::getState(IPAddress speakerIP) // Original
 {
   PGM_P path[] = { p_SoapEnvelope, p_SoapBody, p_GetTransportInfoR, p_CurrentTransportState };
-  //             { p_SoapEnvelope, p_SoapBody, p_GetTransportInfoR, p_CurrentSpeed };
   char result[16] = "\0";
   upnpGetString(speakerIP, UPNP_AV_TRANSPORT, p_GetTransportInfoA, "", "", path, 4, result, sizeof(result));
   return convertState(result);
@@ -397,20 +468,19 @@ uint8_t SonosUPnP::getState(IPAddress speakerIP,char *buf) // New JV : string pa
 {
   int t;
   PGM_P path[] = { p_SoapEnvelope, p_SoapBody, p_GetTransportInfoR, p_CurrentTransportState };
-  //             { p_SoapEnvelope, p_SoapBody, p_GetTransportInfoR, p_CurrentSpeed };
   char result[16] = "\0";
   upnpGetString(speakerIP, UPNP_AV_TRANSPORT, p_GetTransportInfoA, "", "", path, 4, result, sizeof(result));
   if(result[0]!=0) {
     for (t=0;result[t]!=0;++t) buf[t]=result[t];
     buf[t]=0;
+    return convertState(result);
   }
-  return convertState(result);
+  buf[0]=0; return 0;
 }
 
 uint8_t SonosUPnP::getMedium(IPAddress speakerIP) // New JV Medium state
 {
   PGM_P path[] = { p_SoapEnvelope, p_SoapBody, p_getMediaInfoR, p_CurrentMedium };
-  //             { p_SoapEnvelope, p_SoapBody, p_GetTransportInfoR, p_CurrentSpeed };
   char result[16] = "\0";
   upnpGetString(speakerIP, UPNP_AV_TRANSPORT, p_getMediaInfoA, "", "", path, 4, result, sizeof(result));
     return convertMedium(result);
@@ -420,17 +490,44 @@ uint8_t SonosUPnP::getMedium(IPAddress speakerIP,char *buf) // New JV Medium wit
 {
   int t;
   PGM_P path[] = { p_SoapEnvelope, p_SoapBody, p_getMediaInfoR, p_CurrentMedium };
-  //             { p_SoapEnvelope, p_SoapBody, p_GetTransportInfoR, p_CurrentSpeed };
   char result[16] = "\0";
   upnpGetString(speakerIP, UPNP_AV_TRANSPORT, p_getMediaInfoA, "", "", path, 4, result, sizeof(result));
   //Serial.print(" /1 ");Serial.println(result);
   if(result[0]!=0) {
     for (t=0;result[t]!=0;++t) buf[t]=result[t];
     buf[t]=0;
-  }
     return convertMedium(result);
+  }
+  buf[0]=0; return 0;
 }
 
+bool SonosUPnP::getZone(IPAddress speakerIP,char *buf) // New JV : string passthrough
+{
+  int t;
+  PGM_P path[] = { p_SoapEnvelope, p_SoapBody, p_GetZoneAttributesR, p_ZoneName };
+  char result[32] = "\0";
+  upnpGetString(speakerIP, UPNP_DEVICE_PROPERTIES, p_GetZoneAttributesA, "", "", path, 4, result, sizeof(result));
+  if(result[0]!=0) {
+  for (t=0;result[t]!=0;++t) buf[t]=result[t];
+  buf[t]=0;
+  return 1;
+  }
+   buf[0]=0; return 0;
+}
+
+bool SonosUPnP::getSerial(IPAddress speakerIP,char *buf) // New JV : string passthrough
+{
+  int t;
+  PGM_P path[] = { p_SoapEnvelope, p_SoapBody, p_GetZoneInfoR, p_Serial };
+  char result[20] = "\0";
+  upnpGetString(speakerIP, UPNP_DEVICE_PROPERTIES, p_GetZoneInfoA, "", "", path, 4, result, sizeof(result));
+  if(result[0]!=0) {
+  for (t=0;result[t]!=0;++t) buf[t]=result[t];
+  buf[t]=0;
+  return 1;
+  }
+  buf[0]=0; return 0;
+}
 
 uint8_t SonosUPnP::getPlayMode(IPAddress speakerIP,char *buf) // New JV : string passthrough
 {
@@ -441,8 +538,9 @@ uint8_t SonosUPnP::getPlayMode(IPAddress speakerIP,char *buf) // New JV : string
   if(result[0]!=0) {
   for (t=0;result[t]!=0;++t) buf[t]=result[t];
   buf[t]=0;
-  }
   return convertPlayMode(result);
+  }
+  buf[0]=0; return 0;
 }
 
 uint8_t SonosUPnP::getPlayMode(IPAddress speakerIP) // original
@@ -492,8 +590,8 @@ TrackInfo SonosUPnP::getTrackInfo(IPAddress speakerIP, char *uriBuffer, size_t u
 }
 
 // JV
-// New function to pass full treack ifno including Artist, Album and songname. Uses modified Xpath parsing
-//
+// New function to pass full treack info including Artist, Album and Songname. Uses modified Xpath parsing
+// PArsed from SERVICE : AVTRAnsport -> GetPositionInfo -> XLM response incl TrackMetaData
 FullTrackInfo SonosUPnP::getFullTrackInfo(IPAddress speakerIP)
 {
   FullTrackInfo trackInfo;
@@ -517,7 +615,7 @@ FullTrackInfo SonosUPnP::getFullTrackInfo(IPAddress speakerIP)
   ethClient_stop();
   if (upnpPost(speakerIP, UPNP_AV_TRANSPORT, p_GetPositionInfoA, "", "", "", 0, 0, ""))
   {
-    xPath.reset();
+    xPath.reset(); 
     char infoBuffer[20] = "";
     // Track title
     TITLE_BUFFER[0]=0;
@@ -596,48 +694,62 @@ void SonosUPnP::getTrackAlbum(IPAddress speakerIP, char *resultBuffer, size_t re
   ethClient_stop();
 }
 
-uint8_t SonosUPnP::getSource(IPAddress speakerIP)
+uint8_t SonosUPnP::getSourceFromURI(const char *uri) // adapted JV
 {
-  char uri[25] = "";
-  getTrackURI(speakerIP, uri, sizeof(uri));
-  return getSourceFromURI(uri);
+  uint8_t t,v;
+  for (t=0;t<SONOS_MAXSOURCE;++t)
+      {
+     v=0;
+      while (p_MediaSource[t][v] !=0)
+          {
+            if (p_MediaSource[t][v]!=uri[v]) break;
+            v++;
+          }
+  if(p_MediaSource[t][v]==0 ) return t; // we have a match
+  }
+  return(0);
 }
 
-uint8_t SonosUPnP::getSourceFromURI(const char *uri)
+uint8_t SonosUPnP::getSource(IPAddress speakerIP) // adapted JV
 {
-  if (!strncmp(SONOS_SOURCE_FILE_SCHEME, uri, sizeof(SONOS_SOURCE_FILE_SCHEME) - 1))
-  {
-    return SONOS_SOURCE_FILE;
+  uint8_t t,v;
+  char uri[32] = "";
+  getTrackURI(speakerIP, uri, sizeof(uri));
+  for (t=0;t<SONOS_MAXSOURCE;++t)
+      {
+     v=0;
+      while (p_MediaSource[t][v] !=0)
+          {
+            if (p_MediaSource[t][v]!=uri[v]) break;
+            v++;
+          }
+  if(p_MediaSource[t][v]==0 ) return t; // we have a match
   }
-  if (!strncmp(SONOS_SOURCE_HTTP_SCHEME, uri, sizeof(SONOS_SOURCE_HTTP_SCHEME) - 1))
-  {
-    return SONOS_SOURCE_HTTP;
+  return(0);
+}
+
+uint8_t SonosUPnP::getSource(IPAddress speakerIP,char *buf) // new JV
+{
+  uint8_t t,u,v;
+  char uri[32] = "";
+  getTrackURI(speakerIP, uri, sizeof(uri));
+  for (t=0;t<SONOS_MAXSOURCE;++t)
+      {
+     v=0;
+      while (p_MediaSource[t][v] !=0)
+          {
+            if (p_MediaSource[t][v]!=uri[v]) break;
+            v++;
+          }
+  if(p_MediaSource[t][v]==0 ) // we have a match
+    {
+    for (u=0; p_MediaSourceName[t][u]!=0 ;u++ ) buf[u]=p_MediaSourceName[t][u]; // copy name to buffer
+    buf[u]=0; // end buffer with zero
+    return t;
+    }
   }
-  if (!strncmp(SONOS_SOURCE_RADIO_SCHEME, uri, sizeof(SONOS_SOURCE_RADIO_SCHEME) - 1))
-  {
-    return SONOS_SOURCE_RADIO;
-  }
-  if (!strncmp(SONOS_SOURCE_RADIO_AAC_SCHEME, uri, sizeof(SONOS_SOURCE_RADIO_AAC_SCHEME) - 1))
-  {
-    return SONOS_SOURCE_RADIO;
-  }
-  if (!strncmp(SONOS_SOURCE_MASTER_SCHEME, uri, sizeof(SONOS_SOURCE_MASTER_SCHEME) - 1))
-  {
-    return SONOS_SOURCE_MASTER;
-  }
-  if (!strncmp(SONOS_SOURCE_LINEIN_SCHEME, uri, sizeof(SONOS_SOURCE_LINEIN_SCHEME) - 1))
-  {
-    return SONOS_SOURCE_LINEIN;
-  }
-    if (!strncmp(SONOS_SOURCE_SPOTIFY_SCHEME, uri, sizeof(SONOS_SOURCE_SPOTIFY_SCHEME) - 1))
-  {
-    return SONOS_SOURCE_SPOTIFY;
-  }
-    if (!strncmp(SONOS_SOURCE_SPOTIFYSTATION_SCHEME, uri, sizeof(SONOS_SOURCE_SPOTIFYSTATION_SCHEME) - 1))
-  {
-    return SONOS_SOURCE_SPOTIFYSTATION;
-  }  
-  return SONOS_SOURCE_UNKNOWN;
+  buf[0]=0;     // make empty buffer string
+  return(0);
 }
 
 uint32_t SonosUPnP::getTrackDurationInSeconds(IPAddress speakerIP)
@@ -775,6 +887,28 @@ void SonosUPnP::upnpSet(IPAddress ip, uint8_t upnpMessageType, PGM_P action_P, c
   ethClient_stop();
 }
 
+bool SonosUPnP::upnpGetzp(IPAddress ip) // JV new - simple GET status/zp command 
+{
+  if (!ethClient.connect(ip, UPNP_PORT)) return false;
+  char buffer[50];
+  ethClient_write("GET /status/zp HTTP/1.1\n");
+  sprintf_P(buffer, p_HeaderHost, ip[0], ip[1], ip[2], ip[3], UPNP_PORT); // 29 bytes max
+  ethClient_write(buffer);
+  ethClient_write("Connection: close\n");
+  ethClient_write("\n");
+
+  uint32_t start = millis();
+  while (!ethClient.available())
+  {
+    if (millis() > (start + UPNP_RESPONSE_TIMEOUT_MS))
+    {
+      //if (ethernetErrCallback) ethernetErrCallback();
+      return false;
+    }
+  }
+  return true;
+}
+
 bool SonosUPnP::upnpPost(IPAddress ip, uint8_t upnpMessageType, PGM_P action_P, const char *field, const char *valueA, const char *valueB, PGM_P extraStart_P, PGM_P extraEnd_P, const char *extraValue)
 {
   if (!ethClient.connect(ip, UPNP_PORT)) return false;
@@ -812,6 +946,7 @@ bool SonosUPnP::upnpPost(IPAddress ip, uint8_t upnpMessageType, PGM_P action_P, 
       strlen_P(extraStart_P) +
       strlen(extraValue) +
       strlen_P(extraEnd_P);
+      
   }
 
   char buffer[50];
@@ -1170,6 +1305,18 @@ uint8_t SonosUPnP::convertPlayMode(const char *input)
   if (strcmp(input, SONOS_PLAY_MODE_SHUFFLE_REPEAT_VALUE) == 0) return SONOS_PLAY_MODE_SHUFFLE_REPEAT;
   if (strcmp(input, SONOS_PLAY_MODE_SHUFFLE_VALUE) == 0)        return SONOS_PLAY_MODE_SHUFFLE;
   return SONOS_PLAY_MODE_NORMAL;
+}
+
+/* 
+Parse String with XML meta data.
+
+amp;apos;
+
+
+*/
+uint8_t SonosUPnP::convertMetaData(char *input,char * output )
+{
+
 }
 
 #endif

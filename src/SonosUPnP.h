@@ -17,7 +17,7 @@
 /* Written by Thomas Mittet (code@lookout.no) January 2015.             */
 /*                                                                      */
 /* Modified for use with Wifi.h or WifiNINA.h for wireless Networking   */
-/* Added uPnP Network Scan function  Jay Fox 2020                       */
+/* Added uPnP Network Scan function  Jay Vox 2020                       */
 /************************************************************************/
 
 #ifndef SonosUPnP_h
@@ -85,6 +85,21 @@
 #define UPNP_DEVICE_PROPERTIES 3
 #define UPNP_DEVICE_PROPERTIES_SERVICE "DeviceProperties:1"
 #define UPNP_DEVICE_PROPERTIES_ENDPOINT "/DeviceProperties/Control"
+
+
+#define SONOS_TAG_GET_ZONE_ATTR "GetZoneAttributes"
+#define SONOS_TAG_GET_ZONE_ATTR_RESPONSE "u:GetZoneAttributesResponse"
+#define SONOS_TAG_ZONENAME "CurrentZoneName"
+#define SONOS_TAG_GET_ZONE_INFO "GetZoneInfo"
+#define SONOS_TAG_GET_ZONE_INFO_RESPONSE "u:GetZoneInfoResponse"
+#define SONOS_TAG_SERIAL "ExtraInfo"
+
+#define SONOS_GET_ZPSUPPORTINFO "ZPSupportInfo"
+#define SONOS_GET_ZPINFO "ZPInfo"
+#define SONOS_GET_ZPZONE "ZoneName"
+#define SONOS_GET_ZPLOCALUID "LocalUID"
+#define SONOS_GET_ZPSERIAL "SerialNumber"
+#define SONOS_GET_ZPSERIESID "SeriesID"
 
 // Sonos speaker state control:
 /*
@@ -177,26 +192,32 @@
 // r:streamContent : name artist & nummer
 // dc:title : radio title
 
+#define SONOS_MAXSOURCE 11
 
-#define SONOS_SOURCE_UNKNOWN 0
-#define SONOS_SOURCE_FILE 1
-#define SONOS_SOURCE_HTTP 2
-#define SONOS_SOURCE_RADIO 3
-#define SONOS_SOURCE_LINEIN 4
-#define SONOS_SOURCE_MASTER 5
-#define SONOS_SOURCE_SPOTIFY 6
-#define SONOS_SOURCE_SPOTIFYSTATION 7
-#define SONOS_SOURCE_LOCALHTTP 8
-#define SONOS_SOURCE_FILE_SCHEME "x-file-cifs:"
-#define SONOS_SOURCE_HTTP_SCHEME "x-sonos-http:"
-#define SONOS_SOURCE_RADIO_SCHEME "x-rincon-mp3radio:"
-#define SONOS_SOURCE_RADIO_AAC_SCHEME "aac:"
-#define SONOS_SOURCE_LINEIN_SCHEME "x-rincon-stream:"
-#define SONOS_SOURCE_MASTER_SCHEME "x-rincon:"
-#define SONOS_SOURCE_QUEUE_SCHEME "x-rincon-queue:"
-#define SONOS_SOURCE_SPOTIFYSTATION_SCHEME "x-sonosprog-spotify:"
-#define SONOS_SOURCE_SPOTIFY_SCHEME "x-sonos-spotify:"
-#define SONOS_SOURCE_LOCALHTTP_SCHEME "http:"
+#define SONOS_SOURCE_UNKNOWN_SCHEME "z-sonos-unknown:\0"
+#define SONOS_SOURCE_SPOTIFY_SCHEME "x-sonos-spotify:\0"
+#define SONOS_SOURCE_FILE_SCHEME "x-file-cifs:\0"
+#define SONOS_SOURCE_HTTP_SCHEME "x-sonos-http:\0"
+#define SONOS_SOURCE_RADIO_SCHEME "x-rincon-mp3radio:\0"
+#define SONOS_SOURCE_RADIO_AAC_SCHEME "aac:\0"
+#define SONOS_SOURCE_LINEIN_SCHEME "x-rincon-stream:\0"
+#define SONOS_SOURCE_MASTER_SCHEME "x-rincon:\0"
+#define SONOS_SOURCE_QUEUE_SCHEME "x-rincon-queue:\0"
+#define SONOS_SOURCE_SPOTIFYSTATION_SCHEME "x-sonosprog-spotify:\0"
+#define SONOS_SOURCE_LOCALHTTP_SCHEME "http:\0"
+
+#define UNKNOWN_SCHEME "Unknown"
+#define FILE_SCHEME "File"
+#define SPOTIFY_SCHEME "Spotify"
+#define HTTP_SCHEME "Http"
+#define RADIO_SCHEME "Radio"
+#define RADIO_AAC_SCHEME "Radio AAC"
+#define LINEIN_SCHEME "Line-In"
+#define MASTER_SCHEME "Master"
+#define QUEUE_SCHEME "Queue"
+#define SPOTIFYSTATION_SCHEME "Spotify Station"
+#define SPOTIFY_SCHEME "Spotify"
+#define LOCALHTTP_SCHEME "Local Http"
 
 // Volume, bass & treble:
 /*
@@ -304,6 +325,8 @@
 #define SONOS_STATE_PAUSED_VALUE "PAUSED_PLAYBACK"
 #define SONOS_STATE_STOPPED 3
 #define SONOS_STATE_STOPPED_VALUE "STOPPED"
+#define SONOS_STATE_TRANSISTION 4
+#define SONOS_STATE_TRANSISTION_VALUE "TRANSISTION"
 
 struct TrackInfo
 {
@@ -313,7 +336,7 @@ struct TrackInfo
   char *uri;
   };
 
-struct FullTrackInfo //. JV new
+struct FullTrackInfo // JV new, pass text-info as char string
 {
   uint16_t number;
   char *duration;
@@ -322,6 +345,21 @@ struct FullTrackInfo //. JV new
   char *title;
   char *album;
   };
+
+struct SonosInfo // JV new, pass text info as Char string
+{
+  uint16_t number;
+  char *uid;        // Rincon-xxxx 32 bytes
+  char *serial;      // 16 bytes serialnumber short - no '-'
+  char *seriesid;   // Series ID or Sonos Type - 16bytes
+  char *zone;        // Zone name - 32 bytes
+  char *medium;      // medium - network, linein etc
+  char *status;      // Status - play/stop/pause etc
+  char *playmode;    // playmode, see SONOS_PLAY_MODE definitions
+  char *source;      // source, defined in URI , see  SONOS_SOURCE definitions
+  };
+
+
 
 class SonosUPnP
 {
@@ -376,17 +414,22 @@ class SonosUPnP
     uint8_t getPlayMode(IPAddress speakerIP,char *buf); // new JV  : string passthrough
     uint8_t getPlayMode(IPAddress speakerIP); 
 
+   bool getZone(IPAddress speakerIP,char *buf); // new JV  : string passthrough
+   bool getSerial(IPAddress speakerIP,char *buf); // new JV  : string passthrough
+    uint8_t getSource(IPAddress speakerIP,char *buf); // new JV  : string passthrough
+    uint8_t getSource(IPAddress speakerIP);
+
     bool getRepeat(IPAddress speakerIP);
     bool getShuffle(IPAddress speakerIP);
     TrackInfo getTrackInfo(IPAddress speakerIP, char *uriBuffer, size_t uriBufferSize);
     FullTrackInfo getFullTrackInfo(IPAddress speakerIP); // new JV - parse track info without TrackURI
+    SonosInfo getSonosInfo(IPAddress speakerIP); // new JV - parse Get status/zp XLM
     uint16_t getTrackNumber(IPAddress speakerIP);
     void getTrackURI(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize);
     void getTrackCreator(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize); // new JV - parse XML Metadata attribute Creator
     void getTrackTitle(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize); // new JV - parse XML Metadata attribute Title
       void getTrackAlbum(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize); // new JV - parse XML Metadata attribute Album
-    uint8_t getSource(IPAddress speakerIP);
-    uint8_t getSourceFromURI(const char *uri);
+      uint8_t getSourceFromURI(const char *uri);
     uint32_t getTrackDurationInSeconds(IPAddress speakerIP);
     uint32_t getTrackPositionInSeconds(IPAddress speakerIP);
     uint16_t getTrackPositionPerMille(IPAddress speakerIP);
@@ -417,7 +460,7 @@ class SonosUPnP
     void ethClient_write_P(PGM_P data_P, char *buffer, size_t bufferSize);
     void ethClient_stop();
     void readback_IP(IPAddress *IPa,char* buf,char pointer,char bufsize); // New JV : readback IP from (UDP)buffer
-
+    bool upnpGetzp(IPAddress ip); // New JV GET command status/zp  
     #ifndef SONOS_WRITE_ONLY_MODE
 
     MicroXPath_P xPath;
@@ -429,6 +472,7 @@ class SonosUPnP
     uint8_t convertMedium(const char *input);
     uint8_t convertState(const char *input);
     uint8_t convertPlayMode(const char *input);
+    uint8_t convertMetaData(char *input,char * output );
 
     #endif
 };

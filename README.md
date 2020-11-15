@@ -11,7 +11,6 @@ Added a patched function parsing for TrackMetaData parsing (very loose!)
 
 New SonosUPnP-class functions:
 
-
 getZone(IPAddress,.buffer)
 getSerial(IPAddress,buffer)
 getSource(IPAddress,buffer)

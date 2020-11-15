@@ -69,25 +69,33 @@ void setup() {
    }
 }
 
+// EXAMPLE LOOP TO SHOW INFO AVAILABLE
 void loop() {
   char text[128];
   FullTrackInfo info;
-  
-  Serial.print("\nActive Sonos ");Serial.print(ACTIVE_sonosIP);
-  G_Sonos.getState(ACTIVE_sonosIP,text);  Serial.print(" ");Serial.print(text);
-  G_Sonos.getMedium(ACTIVE_sonosIP,text);  Serial.print(" @ ");Serial.println(text);
-  G_Sonos.getTrackURI(ACTIVE_sonosIP,text,sizeof(text));
-  Serial.print("URI: ");Serial.println(text);
+  SonosInfo info2;
 
+  info2= G_Sonos.getSonosInfo(ACTIVE_sonosIP); // Request Sonos Device info
+  Serial.print("\nActive Sonos IP ");Serial.println(ACTIVE_sonosIP);
+  Serial.print("Sonos Type ");Serial.print(info2.seriesid);
+  Serial.print(", Serial-[");Serial.print(info2.serial);
+  Serial.print("] ");Serial.print(info2.status);
+  Serial.print(" in Zone ");Serial.print(info2.zone);
+  Serial.print(" via ");Serial.println(info2.medium);
+
+  Serial.print("Playing from source ");Serial.print(info2.source);
+  Serial.print(", using play mode ");Serial.println(info2.playmode);
+  Serial.print("\n");
+
+while(1) {
    info= G_Sonos.getFullTrackInfo(ACTIVE_sonosIP); // Resd full track info
-   Serial.print(info.album);
+   Serial.print("\n");Serial.print(info.album);
    Serial.print(" - ");Serial.println(info.creator);
    Serial.print(info.number);
    Serial.print(". ");Serial.print(info.title);
    Serial.print("  ");Serial.println(info.position);
-   
-  delay(10000);
-  
+   delay(10000);
+  }
 }
 
 void printWifiData() {

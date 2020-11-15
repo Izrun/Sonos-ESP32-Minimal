@@ -607,7 +607,7 @@ FullTrackInfo SonosUPnP::getFullTrackInfo(IPAddress speakerIP)
     trackInfo.duration=DURATION_BUFFER;
     PGM_P dpath[] = { p_SoapEnvelope, p_SoapBody, p_GetPositionInfoR, p_TrackDuration };
     ethClient_xPath(dpath, 4, DURATION_BUFFER, sizeof(DURATION_BUFFER));
-    // Track position
+      // Track position
     trackInfo.position = POSITION_BUFFER;
     PGM_P ppath[] = { p_SoapEnvelope, p_SoapBody, p_GetPositionInfoR, p_RelTime };    
     ethClient_xPath(ppath, 4, POSITION_BUFFER, sizeof(POSITION_BUFFER));
@@ -680,6 +680,7 @@ void SonosUPnP::getTrackTitle(IPAddress speakerIP, char *resultBuffer, size_t re
     ethClient_xPath2(path, 5, resultBuffer, resultBufferSize);
   }
   ethClient_stop();
+
 }
 
 // JV New
@@ -1237,6 +1238,7 @@ void SonosUPnP::ethClient_xPath2(PGM_P *path, uint8_t pathSize, char *resultBuff
 #if DEBUG_XPATH  
 Serial.println(""); /*****************/
 #endif
+convertMetaData(resultBuffer);   // Strip XML feedback from special charaters.
 }
 
 void SonosUPnP::upnpGetString(IPAddress speakerIP, uint8_t upnpMessageType, PGM_P action_P, const char *field, const char *value, PGM_P *path, uint8_t pathSize, char *resultBuffer, size_t resultBufferSize)
@@ -1308,15 +1310,52 @@ uint8_t SonosUPnP::convertPlayMode(const char *input)
 }
 
 /* 
-Parse String with XML meta data.
+Parse String with XML meta data on specia HTML characters
 
-amp;apos;
+Converts:
+&lt; = '<'  ascii d60
+&gt; = '>' ascii d62 
+&apos; '\'' ascii d44 
+&quot; '\"' ascii d45
+&amp;  '&' ascii 38 
 
-
+&amp; is only converted to '&' if followed by &amp, otherwise its discarded
 */
-uint8_t SonosUPnP::convertMetaData(char *input,char * output )
+uint8_t SonosUPnP::convertMetaData(char *input)
 {
+  int rp=0,wp=0; // read pointer, write pointer
+  char c,d,e,f,amp=0;
 
+while (input[rp]!=0)
+    {
+    c= input[rp];rp++;
+    if (c=='&')
+        {
+#ifdef  DEBUG_XGEN
+ Serial.print("* XML Metadata parser found &:");Serial.println(&input[rp-1]);
+#endif          
+        c= input[rp];rp++;
+        d= input[rp];rp++;
+        e= input[rp];rp++;
+        if (c=='l' && d == 't' && e==';') {input[wp] = '<'; wp++;}
+        if (c=='g' && d == 't' && e==';') {input[wp] = '>'; wp++;}
+        if (c=='a' && d == 'p' && e=='o') { rp++;rp++;input[wp] = '\''; wp++;} // read s read ;
+        if (c=='q' && d == 'u' && e=='o') { rp++;rp++;input[wp] = '\"'; wp++;} // read t read ;
+
+        if (c=='a' && d == 'm' && e=='p') { 
+          if(amp==0 ) {amp=1; input[rp]='&';}      // found &amp; first time, set next input ';' info another '&', and loop again
+          else {rp++; input[wp]='&'; wp++;amp=0;}    // found &amp;amp second time, print '&'
+          }
+        else amp=0;
+        }
+    else
+        {
+        input[wp] = c; wp++;
+        }
+    if (rp>100) break;  // break loop if there is too much read    
+    }
+input[wp]=0;  // close character string
+return(rp);
 }
 
 #endif

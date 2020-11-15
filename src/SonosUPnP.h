@@ -440,7 +440,8 @@ class SonosUPnP
     int8_t getBass(IPAddress speakerIP);
     int8_t getTreble(IPAddress speakerIP);
     bool getLoudness(IPAddress speakerIP);
-    
+ 
+
     #endif
 
   private:
@@ -461,8 +462,8 @@ class SonosUPnP
     void ethClient_stop();
     void readback_IP(IPAddress *IPa,char* buf,char pointer,char bufsize); // New JV : readback IP from (UDP)buffer
     bool upnpGetzp(IPAddress ip); // New JV GET command status/zp  
-    #ifndef SONOS_WRITE_ONLY_MODE
 
+    #ifndef SONOS_WRITE_ONLY_MODE
     MicroXPath_P xPath;
     void ethClient_xPath(PGM_P *path, uint8_t pathSize, char *resultBuffer, size_t resultBufferSize);
     void ethClient_xPath2(PGM_P *path, uint8_t pathSize, char *resultBuffer, size_t resultBufferSize); // modified version to search/parse in Metadata
@@ -472,7 +473,8 @@ class SonosUPnP
     uint8_t convertMedium(const char *input);
     uint8_t convertState(const char *input);
     uint8_t convertPlayMode(const char *input);
-    uint8_t convertMetaData(char *input,char * output );
+    uint8_t convertMetaData(char *input ); 
+
 
     #endif
 };

@@ -4,19 +4,23 @@
 Fork From original Sonos library : https://github.com/tmittet/sonos
 
 ** MKR1010 / WifiNINA uBlox NINA W10 : **
+
 WIFININA port, have a look this fork: https://github.com/javos65/sonos
 Added Sonos upnp scan to find your sonos devices on your network
 Added a patched function parsing for TrackMetaData parsing (very loose!)
 
 New SonosUPnP-class functions:
 
+
 getZone(IPAddress,.buffer)
 getSerial(IPAddress,buffer)
 getSource(IPAddress,buffer)
 getMedium(IPAddress,buffer) - including Spotify
 
+
 getFullTrackInfo(IPAddress) : using new Structure : FullTrackInfo to use TrackMetaData
 getSonosInfo(IPAddress) : using new Structure : SonosInfo
+
 
 Track MetaData :
 getTrackCreator(IPAddress, buffer)

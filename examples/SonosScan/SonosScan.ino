@@ -75,7 +75,7 @@ while (!Serial) {
 /*********** WIFI SETUP  **********/
 if (WiFi.status() == WL_NO_SHIELD) {   // check for the presence of the shield:
 #if DEBUG_X
-    Serial.println("* WiFi shield not present");
+    Serial.println("* WiFi shield not present - halted");
 #endif
     while (true);     // don't continue if no shield
   }
@@ -86,6 +86,12 @@ delay(1000);
 MyEasyWiFi.apname(MyAPName);
 MyEasyWiFi.seed(4);
 MyEasyWiFi.start();     // Start Wifi login 
+if ( WiFi.status() != WL_CONNECTED){
+#if DEBUG_X
+   Serial.println("* WiFi cant connect. halted");
+#endif
+    while (true);     // don't continue if no wifi
+    }
 G_Myip = WiFi.localIP();
 
 /*********** Server SETUP  **********/
@@ -129,7 +135,6 @@ int t;
 char c,text[128];
 FullTrackInfo info;
 SonosInfo infoX;
-
   infoX= G_Sonos.getSonosInfo(ACTIVE_sonosIP); // Request Sonos Device info
   Serial.print("\nActive Sonos IP ");Serial.print(ACTIVE_sonosIP);Serial.print(", UID ");Serial.println(infoX.uid);
   Serial.print("Sonos Type ");Serial.print(infoX.seriesid);
@@ -149,7 +154,9 @@ while(1) {
    Serial.print(". ");Serial.print(info.title);
    Serial.print("  ");Serial.println(info.position);
    //Serial.print("/");Serial.println(info.duration);
-   for(t=0;t<10000;++t) CheckServerClients();     
+   for(t=0;t<10000;++t) {
+    CheckServerClients();  
+    }
    }
 
 } // end Main loop

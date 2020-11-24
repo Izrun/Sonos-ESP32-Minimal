@@ -17,7 +17,11 @@
 /* Written by Thomas Mittet (code@lookout.no) January 2015.             */
 /*                                                                      */
 /* Modified for use with Wifi.h or WifiNINA.h for wireless Networking   */
-/* Added uPnP Network Scan function  Jay Vox 2020                       */
+/* Added uPnP Network Scan function  Jay Vox 2020  
+// 
+// Modified to work with the Heltec WiFi Kit32 with integrated wifi,
+//	OLED display,  Geoff Shorten 2020
+//                   												 */
 /************************************************************************/
 
 #ifndef SonosUPnP_h
@@ -32,13 +36,16 @@
 //  #include <pgmspace.h>
 //#endif
 // below added by GS from joeybab3 fork
-#include "pgmspace.h"
+
 #if defined(__AVR__)
-#include <WiFi.h>
+	#include <avr/pgmspace.h>
+	#include <WiFi.h>
 #elif defined(ESP8266)
-#include <ESP8266WiFi.h>
+	#include <ESP8266WiFi.h>
 #else
-#include <WiFi.h>
+	//#include <avr/pgmspace.h>
+	#include <pgmspace.h>
+	#include <WiFi.h>
 #endif
 
 
@@ -73,7 +80,7 @@
 #define UPNP_MULTICAST_IP (byte[]) {239,255,255,250}
 #define UPNP_MULTICAST_PORT 1900
 #define UPNP_MULTICAST_TIMEOUT_S 2
-#define UPNP_RESPONSE_TIMEOUT_MS 5000  //GS was 3000 increased to 5000
+#define UPNP_RESPONSE_TIMEOUT_MS 3000  //GS was 3000 increased to 5000
 #define UPNP_DEVICE_SCAN "M-SEARCH * HTTP/1.1\nHOST: 239.255.255.250:1900\nMAN: \"ssdp:discover\"\nMX: 2\nST: urn:schemas-upnp-org:device:ZonePlayer:1\n\0"
 
 // UPnP tag data:

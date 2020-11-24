@@ -912,7 +912,11 @@ bool SonosUPnP::upnpGetzp(IPAddress ip) // JV new - simple GET status/zp command
 
 bool SonosUPnP::upnpPost(IPAddress ip, uint8_t upnpMessageType, PGM_P action_P, const char *field, const char *valueA, const char *valueB, PGM_P extraStart_P, PGM_P extraEnd_P, const char *extraValue)
 {
-  if (!ethClient.connect(ip, UPNP_PORT)) return false;
+  if (!ethClient.connect(ip, UPNP_PORT)) {   // GS added debug print
+	  Serial.println("*SONOS: Unable to connect to the speaker :(");
+	  return false;
+  }
+  
   
   // Get UPnP service name
   PGM_P upnpService = getUpnpService(upnpMessageType);
@@ -949,8 +953,8 @@ bool SonosUPnP::upnpPost(IPAddress ip, uint8_t upnpMessageType, PGM_P action_P, 
       strlen_P(extraEnd_P);
       
   }
-
-  char buffer[50];
+	char buffer[1400];			// GS made buffer bigger, this fixed use of strncpy instead of strlcpy
+ // char buffer[50];
 
   // Write HTTP start
   ethClient_write("POST ");
@@ -1051,7 +1055,7 @@ void SonosUPnP::ethClient_write_P(PGM_P data_P, char *buffer, size_t bufferSize)
   uint16_t dataPos = 0;				
   while (dataLen > dataPos)
   {
-    //strlcpy_P(buffer, data_P + dataPos, bufferSize); */
+    //strlcpy_P(buffer, data_P + dataPos, bufferSize); 
 	strncpy_P(buffer, data_P + dataPos, bufferSize);  // GS using joeybab3 fork to replace strlcpy
     ethClient.print(buffer);
 	

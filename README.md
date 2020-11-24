@@ -3,9 +3,17 @@
 
 Fork From original Sonos library : https://github.com/tmittet/sonos
 
-** MKR1010 / WifiNINA uBlox NINA W10 : **
+This fork modifies javos65 fork to work on the Heltec WiFi Kit 32
+with wifi and integrated OLED display
+https://heltec.org/project/wifi-kit-32/
+Also uses modifications from JoeyBab3 fork, replaces strlcpy function with strncpy
+https://github.com/joeybab3/sonos
+Tested on Heltec WiFi Kit32, not tested on any other platform, but should  work on
+any ESP32 using WiFi library? 
+Have not tested all functions but device discovery, extended track info, and basic sonos controls all work!!!!!!!!
 
-WIFININA port, have a look this fork: https://github.com/javos65/sonos
+Comments below from javos65 & tmittet:
+
 Added Sonos upnp scan to find your sonos devices on your network
 Added a patched function parsing for TrackMetaData parsing (very loose!)
 

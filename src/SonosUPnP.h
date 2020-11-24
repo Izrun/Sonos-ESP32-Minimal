@@ -31,11 +31,21 @@
 //#else
 //  #include <pgmspace.h>
 //#endif
+// below added by GS from joeybab3 fork
+#include "pgmspace.h"
+#if defined(__AVR__)
+#include <WiFi.h>
+#elif defined(ESP8266)
+#include <ESP8266WiFi.h>
+#else
+#include <WiFi.h>
+#endif
+
 
 #ifndef SONOS_WRITE_ONLY_MODE
 #include <MicroXPath_P.h>
 #endif
-#include <WiFiNINA.h>  // JV : Wireless Mkr1010
+//#include <WiFiNINA.h>  // JV : Wireless Mkr1010  //GS use WiFi.h above
 #include <WiFiUdp.h>   // JV : UDP service
 
 // HTTP:
@@ -63,7 +73,7 @@
 #define UPNP_MULTICAST_IP (byte[]) {239,255,255,250}
 #define UPNP_MULTICAST_PORT 1900
 #define UPNP_MULTICAST_TIMEOUT_S 2
-#define UPNP_RESPONSE_TIMEOUT_MS 3000
+#define UPNP_RESPONSE_TIMEOUT_MS 5000  //GS was 3000 increased to 5000
 #define UPNP_DEVICE_SCAN "M-SEARCH * HTTP/1.1\nHOST: 239.255.255.250:1900\nMAN: \"ssdp:discover\"\nMX: 2\nST: urn:schemas-upnp-org:device:ZonePlayer:1\n\0"
 
 // UPnP tag data:
@@ -366,9 +376,9 @@ class SonosUPnP
 
   public:
 
-    SonosUPnP(WiFiClient client);   // wireless
-
-    void setAVTransportURI(IPAddress speakerIP, const char *scheme, const char *address);
+    SonosUPnP(WiFiClient client,void (*ethernetErrCallback)(void));   // wireless //GS added error callback
+    
+	void setAVTransportURI(IPAddress speakerIP, const char *scheme, const char *address);
     void seekTrack(IPAddress speakerIP, uint16_t index);
     void seekTime(IPAddress speakerIP, uint8_t hour, uint8_t minute, uint8_t second);
     void setPlayMode(IPAddress speakerIP, uint8_t playMode);

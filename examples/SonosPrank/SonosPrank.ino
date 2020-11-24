@@ -81,7 +81,7 @@ void loop() {
    Serial.print(" - ");Serial.println(info.creator);   Serial.print(info.number);
    Serial.print(". ");Serial.print(info.title);   Serial.print("  ");Serial.println(info.position);
 
- if (strcmp(info.creator, BadMusic) == 0) G_Sonos.skip(ACTIVE_sonosIP,SONOS_DIRECTION_FORWARD);
+ //if (strcmp(info.creator, BadMusic) == 0) G_Sonos.skip(ACTIVE_sonosIP,SONOS_DIRECTION_FORWARD);
    
   delay(5000);
   

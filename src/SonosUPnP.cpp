@@ -142,7 +142,7 @@ const char p_getMediaInfoR[] PROGMEM = SONOS_TAG_GET_MEDIA_INFO_RESPONSE;
 const char p_CurrentMedium[] PROGMEM = SONOS_TAG_MEDIUM_STATUS;
 const char p_CurrentArtist[] PROGMEM = SONOS_TAG_ARTIST_STATUS;
 
-const char p_UPnPBroadcast[] PROGMEM = UPNP_DEVICE_SCAN;
+const uint8_t p_UPnPBroadcast[] PROGMEM = UPNP_DEVICE_SCAN;
 
 const char *p_MediaSource[SONOS_MAXSOURCE]={SONOS_SOURCE_UNKNOWN_SCHEME,SONOS_SOURCE_FILE_SCHEME , SONOS_SOURCE_SPOTIFY_SCHEME , SONOS_SOURCE_HTTP_SCHEME , SONOS_SOURCE_RADIO_SCHEME, SONOS_SOURCE_RADIO_AAC_SCHEME ,
  SONOS_SOURCE_LINEIN_SCHEME, SONOS_SOURCE_MASTER_SCHEME , SONOS_SOURCE_QUEUE_SCHEME , SONOS_SOURCE_SPOTIFYSTATION_SCHEME , SONOS_SOURCE_LOCALHTTP_SCHEME };
@@ -167,13 +167,13 @@ char STATUS_BUFFER[16]= "\0";
 char PLAYMODE_BUFFER[16]= "\0";
 char SOURCE_BUFFER[16]= "\0";
 
-SonosUPnP::SonosUPnP(WiFiClient client) // wireless adapted JV
+SonosUPnP::SonosUPnP(WiFiClient client, void (*ethernetErrCallback)(void)) // wireless adapted JV //GS added error callback
 {
   #ifndef SONOS_WRITE_ONLY_MODE
   this->xPath = MicroXPath_P();
   #endif
   this->ethClient = client;
-  //this->ethernetErrCallback = ethernetErrCallback;   // adapted JV
+  this->ethernetErrCallback = ethernetErrCallback;   // adapted JV
 }
 
 
@@ -639,7 +639,7 @@ FullTrackInfo SonosUPnP::getFullTrackInfo(IPAddress speakerIP)
     if (ARTIST_BUFFER[0]!=0) trackInfo.creator=ARTIST_BUFFER; // otherwize keep creator attribute
   }
   ethClient_stop();
-
+  
   return trackInfo;
 }
 
@@ -1045,17 +1045,21 @@ void SonosUPnP::ethClient_write(const char *data)
 
 void SonosUPnP::ethClient_write_P(PGM_P data_P, char *buffer, size_t bufferSize)
 {
-  uint16_t dataLen = strlen_P(data_P);
-  uint16_t dataPos = 0;
+  
+ 
+  uint16_t dataLen = strlen_P(data_P);   
+  uint16_t dataPos = 0;				
   while (dataLen > dataPos)
   {
-    strlcpy_P(buffer, data_P + dataPos, bufferSize);
-    ethClient.print(buffer);    
-#if DEBUG_XPATH  
-    Serial.print(buffer); /*****************/
-#endif
+    //strlcpy_P(buffer, data_P + dataPos, bufferSize); */
+	strncpy_P(buffer, data_P + dataPos, bufferSize);  // GS using joeybab3 fork to replace strlcpy
+    ethClient.print(buffer);
+	
+// #if DEBUG_XPATH  
+    // Serial.print(buffer); /*****************/
+// #endif
     dataPos += bufferSize - 1;
-  }
+   }
 }
 
 void SonosUPnP::ethClient_stop()
@@ -1165,9 +1169,6 @@ for(t=0;t<4;++t) {
   }
 *IPa=tmpIP; // copy Ipadress into pointer to give back
 }
-
-
-
 
 
 

@@ -1078,12 +1078,12 @@ void SonosUPnP::ethClient_stop()
 // JV : SSDP over UDP to scan for uPnP on port 1400 : Sonos, and load then into the IP list 
 uint8_t SonosUPnP::CheckUPnP(IPAddress *List,int Listsize)
 {
-  #define SSDPUDP_TIMEOUT 8
+  #define SSDPUDP_TIMEOUT 15  //GS changed to get all sonos units.  orignal was 8
   int u,n,t=0;
   uint8_t match,buffercounter,found=0;
   char c;
   char udpbuffer[33]; udpbuffer[32]=0;        // mark last buffer item as a zero
-  WiFiUDP SSDP_UDP;                           // A UDP instance to let us send and receive packets over UDP  
+  WiFiUDP SSDP_UDP;                      // A UDP instance to let us send and receive packets over UDP  
   IPAddress tmpIP; 
   
   SSDP_UDP.begin(1900);

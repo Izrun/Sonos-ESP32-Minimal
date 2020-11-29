@@ -1078,7 +1078,7 @@ void SonosUPnP::ethClient_stop()
 // JV : SSDP over UDP to scan for uPnP on port 1400 : Sonos, and load then into the IP list 
 uint8_t SonosUPnP::CheckUPnP(IPAddress *List,int Listsize)
 {
-  #define SSDPUDP_TIMEOUT 3  //GS changed to get all sonos units.  orignal was 8
+  #define SSDPUDP_TIMEOUT 5  //GS changed to get all sonos units.  orignal was 8
   int u,n,t=0;
   uint8_t match,buffercounter,found=0;
   char c;

@@ -598,7 +598,8 @@ FullTrackInfo SonosUPnP::getFullTrackInfo(IPAddress speakerIP)
   if (upnpPost(speakerIP, UPNP_AV_TRANSPORT, p_GetPositionInfoA, "", "", "", 0, 0, ""))
   {
     xPath.reset();
-    char infoBuffer[20] = "";
+    //char infoBuffer[20] = "";
+	char infoBuffer[60] = "";		//gs increased buffer
     // Track number
     PGM_P npath[] = { p_SoapEnvelope, p_SoapBody, p_GetPositionInfoR, p_Track };
     ethClient_xPath(npath, 4, infoBuffer, sizeof(infoBuffer));
@@ -616,7 +617,8 @@ FullTrackInfo SonosUPnP::getFullTrackInfo(IPAddress speakerIP)
   if (upnpPost(speakerIP, UPNP_AV_TRANSPORT, p_GetPositionInfoA, "", "", "", 0, 0, ""))
   {
     xPath.reset(); 
-    char infoBuffer[20] = "";
+    //char infoBuffer[20] = "";
+	char infoBuffer[60] = "";					//gs increased buffer
     // Track title
     TITLE_BUFFER[0]=0;
     PGM_P tpath[] = { p_SoapEnvelope, p_SoapBody, p_GetPositionInfoR, p_TrackMeta, p_TrackTitle };
@@ -637,6 +639,7 @@ FullTrackInfo SonosUPnP::getFullTrackInfo(IPAddress speakerIP)
     PGM_P aapath[] = { p_SoapEnvelope, p_SoapBody, p_GetPositionInfoR, p_TrackMeta, p_TrackArtist };
     ethClient_xPath2(aapath, 5, ARTIST_BUFFER, sizeof(ARTIST_BUFFER));
     if (ARTIST_BUFFER[0]!=0) trackInfo.creator=ARTIST_BUFFER; // otherwize keep creator attribute
+	
   }
   ethClient_stop();
   
@@ -1078,7 +1081,7 @@ void SonosUPnP::ethClient_stop()
 // JV : SSDP over UDP to scan for uPnP on port 1400 : Sonos, and load then into the IP list 
 uint8_t SonosUPnP::CheckUPnP(IPAddress *List,int Listsize)
 {
-  #define SSDPUDP_TIMEOUT 10  //GS changed to get all sonos units.  orignal was 8
+  #define SSDPUDP_TIMEOUT 8  //GS changed to get all sonos units.  orignal was 8
   int u,n,t=0;
   uint8_t match,buffercounter,found=0;
   char c;
@@ -1095,7 +1098,7 @@ uint8_t SonosUPnP::CheckUPnP(IPAddress *List,int Listsize)
 #endif    
   while(t<SSDPUDP_TIMEOUT)
     {   // wait to see if a reply is available
-    t++;delay(2000);							//gs increased, was 500
+    t++;delay(1000);							//gs increased, was 500
     while (n=SSDP_UDP.parsePacket())
        {
 #if DEBUG_XPATH

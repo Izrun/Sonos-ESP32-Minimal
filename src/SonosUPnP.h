@@ -361,6 +361,7 @@ struct FullTrackInfo // JV new, pass text-info as char string
   char *creator;
   char *title;
   char *album;
+  
   };
 
 struct SonosInfo // JV new, pass text info as Char string

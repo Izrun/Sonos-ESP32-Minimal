@@ -81,7 +81,8 @@
 #define UPNP_MULTICAST_PORT 1900
 #define UPNP_MULTICAST_TIMEOUT_S 2
 #define UPNP_RESPONSE_TIMEOUT_MS 3000  //GS was 3000 increased to 5000
-#define UPNP_DEVICE_SCAN "M-SEARCH * HTTP/1.1\nHOST: 239.255.255.250:1900\nMAN: \"ssdp:discover\"\nMX: 2\nST: urn:schemas-upnp-org:device:ZonePlayer:1\n\0"
+#define UPNP_DEVICE_SCAN "M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: \"ssdp:discover\"\r\nMX: 2\r\nST: urn:schemas-upnp-org:device:ZonePlayer:1\r\n\0"
+//JB from @Frank-Bemelman #define UPNP_DEVICE_SCAN "M-SEARCH * HTTP/1.1\nHOST: 239.255.255.250:1900\nMAN: \"ssdp:discover\"\nMX: 2\nST: urn:schemas-upnp-org:device:ZonePlayer:1\n\0"
 
 // UPnP tag data:
 #define SOAP_ACTION_START_TAG_START "<u:"
@@ -432,8 +433,8 @@ class SonosUPnP
     uint8_t getPlayMode(IPAddress speakerIP,char *buf); // new JV  : string passthrough
     uint8_t getPlayMode(IPAddress speakerIP); 
 
-   bool getZone(IPAddress speakerIP,char *buf); // new JV  : string passthrough
-   bool getSerial(IPAddress speakerIP,char *buf); // new JV  : string passthrough
+    bool getZone(IPAddress speakerIP,char *buf); // new JV  : string passthrough
+    bool getSerial(IPAddress speakerIP,char *buf); // new JV  : string passthrough
     uint8_t getSource(IPAddress speakerIP,char *buf); // new JV  : string passthrough
     uint8_t getSource(IPAddress speakerIP);
 
@@ -446,8 +447,8 @@ class SonosUPnP
     void getTrackURI(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize);
     void getTrackCreator(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize); // new JV - parse XML Metadata attribute Creator
     void getTrackTitle(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize); // new JV - parse XML Metadata attribute Title
-      void getTrackAlbum(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize); // new JV - parse XML Metadata attribute Album
-      uint8_t getSourceFromURI(const char *uri);
+    void getTrackAlbum(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize); // new JV - parse XML Metadata attribute Album
+    uint8_t getSourceFromURI(const char *uri);
     uint32_t getTrackDurationInSeconds(IPAddress speakerIP);
     uint32_t getTrackPositionInSeconds(IPAddress speakerIP);
     uint16_t getTrackPositionPerMille(IPAddress speakerIP);

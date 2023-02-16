@@ -1079,101 +1079,103 @@ void SonosUPnP::ethClient_stop()
 }
 
 // JV : SSDP over UDP to scan for uPnP on port 1400 : Sonos, and load then into the IP list 
-uint8_t CheckUPnP(IPAddress *List,int Listsize)
+uint8_t SonosUPnP::CheckUPnP(IPAddress *List,int Listsize)
 {
-    #define SSDPUDP_TIMEOUT 40
-    int u,n,n2,t=0;
-    uint8_t match,buffercounter,found=0;
-    char c;
-    char udpbuffer[33]; udpbuffer[32]=0;        // mark last buffer item as a zero
-    WiFiUDP SSDP_UDP;                           // A UDP instance to let us send and receive packets over UDP  
-    IPAddress remoteIP;
-    
-    
-    SSDP_UDP.begin(1900);
-        // FB: Added extra SSDP request as some Sonos devices don't seem to respond to 239,255,255,250 
-        SSDP_UDP.beginPacket(IPAddress(255,255,255,255), 1900);        //SSDP request at port 1900
-        SSDP_UDP.write((const uint8_t*)p_UPnPBroadcast, sizeof(p_UPnPBroadcast));     // fb cast
-        SSDP_UDP.endPacket();
-        // original request     
-        SSDP_UDP.beginPacket(IPAddress(239,255,255,250), 1900);        //SSDP request at port 1900
-        SSDP_UDP.write(p_UPnPBroadcast, sizeof(p_UPnPBroadcast));
-        SSDP_UDP.endPacket();
-    #if DEBUG_XGEN
-        Serial.println("* SSDP : UDP packet send 239.255.255.250:1900");
-    #endif    
-    while(t<SSDPUDP_TIMEOUT)
-        {   // wait to see if a reply is available
-        t++;delay(100);
-        while (n=SSDP_UDP.parsePacket())
-        {
-        remoteIP = SSDP_UDP.remoteIP(); // who send this packet?
-    #if DEBUG_XPATH
-        Serial.print("* Reading packet(");Serial.print(pc++);Serial.print(") of ");Serial.print(n);Serial.print(" bytes from IP:");Serial.println(remoteIP);
-    #endif 
-        char string1[]=":1400"; match=0; buffercounter=0;
-        for(u=0;u<n;++u)
-            {           
-            SSDP_UDP.read(&c, 1); //Serial.print(c);     // read the packet into the buffer
-            buffercounter = (buffercounter+1)%32; // store data in looping buffer of 32
-            udpbuffer[buffercounter]=c;
-            if (c==string1[match]) match++;
-            else match=0;
-            if ( match == sizeof(string1)-1) /// ! found one :1400
-                {
-    #if DEBUG_XGEN
-                Serial.print("* uPnP:1400 found ");
-    #endif               
-                if (found<Listsize){
-                    // readback_IP(&tmpIP,udpbuffer,buffercounter,32);
-                    // check if it is really a new uPnP encountered here
-                    if(found>0)
-                    { // Serial.print("Found another Sonos:"); Serial.print(remoteIP);
-                        for (n2=0;n2<found;n2++)
-                        { if(remoteIP==List[n2])
-                        {  // Serial.print(" which is the same as:"); Serial.print(List[n2]);
-                            break;
-                        }
-                        }
-                        if(n2==found)
-                        { //Serial.print(" and that is a new one:"); Serial.print(remoteIP);
-                        List[found] = remoteIP;
-                        found++;
-                        }
+  #define SSDPUDP_TIMEOUT 40
+  int u,n,n2,t=0;
+  uint8_t match,buffercounter,found=0;
+  char c;
+  char udpbuffer[33]; udpbuffer[32]=0;        // mark last buffer item as a zero
+  WiFiUDP SSDP_UDP;                           // A UDP instance to let us send and receive packets over UDP  
+  IPAddress remoteIP;
+  
+  
+  SSDP_UDP.begin(1900);
+     // FB: Added extra SSDP request as some Sonos devices don't seem to respond to 239,255,255,250 
+     SSDP_UDP.beginPacket(IPAddress(255,255,255,255), 1900);        //SSDP request at port 1900
+     SSDP_UDP.write((const uint8_t*)p_UPnPBroadcast, sizeof(p_UPnPBroadcast));     // fb cast
+     SSDP_UDP.endPacket();
+     // original request     
+     SSDP_UDP.beginPacket(IPAddress(239,255,255,250), 1900);        //SSDP request at port 1900
+     SSDP_UDP.write(p_UPnPBroadcast, sizeof(p_UPnPBroadcast));
+     SSDP_UDP.endPacket();
+#if DEBUG_XGEN
+    Serial.println("* SSDP : UDP packet send 239.255.255.250:1900");
+#endif    
+  while(t<SSDPUDP_TIMEOUT)
+    {   // wait to see if a reply is available
+    t++;delay(100);
+    while (n=SSDP_UDP.parsePacket())
+       {
+       remoteIP = SSDP_UDP.remoteIP(); // who send this packet?
+#if DEBUG_XPATH
+    Serial.print("* Reading packet(");Serial.print(pc++);Serial.print(") of ");Serial.print(n);Serial.print(" bytes from IP:");Serial.println(remoteIP);
+#endif 
+       char string1[]=":1400"; match=0; buffercounter=0;
+       for(u=0;u<n;++u)
+           {           
+           SSDP_UDP.read(&c, 1); //Serial.print(c);     // read the packet into the buffer
+           buffercounter = (buffercounter+1)%32; // store data in looping buffer of 32
+           udpbuffer[buffercounter]=c;
+           if (c==string1[match]) match++;
+           else match=0;
+           if ( match == sizeof(string1)-1) /// ! found one :1400
+              {
+#if DEBUG_XGEN
+              Serial.print("* uPnP:1400 found ");
+#endif               
+              if (found<Listsize){
+                  // readback_IP(&tmpIP,udpbuffer,buffercounter,32);
+                  // check if it is really a new uPnP encountered here
+                  if(found>0)
+                  { // Serial.print("Found another Sonos:"); Serial.print(remoteIP);
+                    for (n2=0;n2<found;n2++)
+                    { if(remoteIP==List[n2])
+                      {  // Serial.print(" which is the same as:"); Serial.print(List[n2]);
+                         break;
+                      }
                     }
-                    else
-                    { // Serial.print("First Sonos found:"); Serial.print(remoteIP);
-                        List[found]=remoteIP;
-                        found++;
+                    if(n2==found)
+                    { // Serial.print(" and that is a new one:"); Serial.print(remoteIP);
+                      List[found] = remoteIP;
+                      found++;
                     }
-    #if DEBUG_XGEN
-                Serial.print("* IPAddress:");Serial.println(remoteIP);
-    #endif                   
-                    }
-                else {
-    #if DEBUG_XGEN
-                Serial.println("* too many uPnP found ");
-    #endif               
-                    }                            
-                } // if found :1400              
-            } // for-loop packet data
-        } // while packet data is available 
-        if (t>SSDPUDP_TIMEOUT) break;             // max <UDP_TIMEOUT> times to parse packed, otherwise skip
-        } 
-    SSDP_UDP.stop(); 
-    if (found > 0) {
-    #if DEBUG_XGEN
-        Serial.print("* SSDP Found ");Serial.print(found);Serial.println(" uPnP Devices on network");
-    #endif     
-    }
-    else{
-    #if DEBUG_XGEN
-        Serial.print("* SSDP Found no uPnP Devices on network");
-    #endif     
-    }
-    for(t=found;t<Listsize;++t) List[t]= IPAddress(0,0,0,0); // Fill remaining list with 0.0.0.0-IP
-    return found;
+                  }
+                  else
+                  { // Serial.print("First Sonos found:"); Serial.print(remoteIP);
+                    List[found]=remoteIP;
+                    found++;
+                  }
+#if DEBUG_XGEN
+              Serial.print("* IPAddress:");Serial.println(remoteIP);
+#endif                   
+                 }
+              else {
+#if DEBUG_XGEN
+              Serial.println("* too many uPnP found ");
+#endif               
+                 }                            
+              } // if found :1400              
+          } // for-loop packet data
+       } // while packet data is available 
+    if (t>SSDPUDP_TIMEOUT) break;             // max <UDP_TIMEOUT> times to parse packed, otherwise skip
+    } 
+SSDP_UDP.stop(); 
+if (found > 0) {
+#if DEBUG_XGEN
+    Serial.print("* SSDP Found ");Serial.print(found);Serial.println(" uPnP Devices on network");
+#endif     
+  }
+  else{
+#if DEBUG_XGEN
+    Serial.print("* SSDP Found no uPnP Devices on network");
+#endif     
 }
+for(t=found;t<Listsize;++t) List[t]= IPAddress(0,0,0,0); // Fill remaining list with 0.0.0.0-IP
+return found;
+}
+
+
 
 // Parse IP in looped string "***www.xxx.yyy.zzz:1400***"
 void SonosUPnP::readback_IP(IPAddress *IPa,char* buf,char pointer,char bufsize)

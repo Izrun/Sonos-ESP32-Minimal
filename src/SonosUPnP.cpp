@@ -419,39 +419,45 @@ void SonosUPnP::toggleLoudness(IPAddress speakerIP)
 // 2.
 SonosInfo SonosUPnP::getSonosInfo(IPAddress speakerIP)
 {
-  SonosInfo ZP;
- ZONE_BUFFER[0]=0; UID_BUFFER[0]=0;SERIAL_BUFFER[0]=0;SERIESID_BUFFER[0]=0; // set all buffers to string "0"
-  if (upnpGetzp(speakerIP) )
-  {
-    xPath.reset();
-    char infoBuffer[20] = "";
-    // Zone Info
-    ZP.zone = ZONE_BUFFER;
-    PGM_P zpath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPZone};
-    ethClient_xPath(zpath, 3, ZONE_BUFFER, sizeof(ZONE_BUFFER));
-    // Local UIDInfo
-    ZP.uid = UID_BUFFER;
-    PGM_P ypath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPLocalUID};
-    ethClient_xPath(ypath, 3, UID_BUFFER, sizeof(UID_BUFFER));
-    // Serial Info
-    ZP.serial = SERIAL_BUFFER;
-    PGM_P xpath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPSerial};
-    ethClient_xPath(xpath, 3, SERIAL_BUFFER, sizeof(SERIAL_BUFFER));
-    // Series Info
-    ZP.seriesid = SERIESID_BUFFER;
-    PGM_P wpath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPSeriesID};
-    ethClient_xPath(wpath, 3, SERIESID_BUFFER, sizeof(SERIESID_BUFFER));
-  }
-  ethClient_stop();
-  ZP.status = STATUS_BUFFER;
-  getState(speakerIP,STATUS_BUFFER);
-  ZP.medium = MEDIUM_BUFFER;
-  getMedium(speakerIP,MEDIUM_BUFFER);
-  ZP.source = SOURCE_BUFFER;
-  getSource(speakerIP,SOURCE_BUFFER);
-  ZP.playmode = PLAYMODE_BUFFER;
-  getPlayMode(speakerIP,PLAYMODE_BUFFER);
-  return ZP;
+    SonosInfo ZP;
+    ZONE_BUFFER[0]=0; UID_BUFFER[0]=0;SERIAL_BUFFER[0]=0;SERIESID_BUFFER[0]=0; // set all buffers to string "0"
+    STATUS_BUFFER[0]=0; MEDIUM_BUFFER[0]=0;SOURCE_BUFFER[0]=0;PLAYMODE_BUFFER[0]=0;
+    if (upnpGetzp(speakerIP) )
+    {
+        ZP.exists = true;
+        xPath.reset();
+        char infoBuffer[20] = "";
+        // Zone Info
+        ZP.zone = ZONE_BUFFER;
+        PGM_P zpath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPZone};
+        ethClient_xPath(zpath, 3, ZONE_BUFFER, sizeof(ZONE_BUFFER));
+        // Local UIDInfo
+        ZP.uid = UID_BUFFER;
+        PGM_P ypath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPLocalUID};
+        ethClient_xPath(ypath, 3, UID_BUFFER, sizeof(UID_BUFFER));
+        // Serial Info
+        ZP.serial = SERIAL_BUFFER;
+        PGM_P xpath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPSerial};
+        ethClient_xPath(xpath, 3, SERIAL_BUFFER, sizeof(SERIAL_BUFFER));
+        // Series Info
+        ZP.seriesid = SERIESID_BUFFER;
+        PGM_P wpath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPSeriesID};
+        ethClient_xPath(wpath, 3, SERIESID_BUFFER, sizeof(SERIESID_BUFFER));
+        ZP.status = STATUS_BUFFER;
+        getState(speakerIP,STATUS_BUFFER);
+        ZP.medium = MEDIUM_BUFFER;
+        getMedium(speakerIP,MEDIUM_BUFFER);
+        ZP.source = SOURCE_BUFFER;
+        getSource(speakerIP,SOURCE_BUFFER);
+        ZP.playmode = PLAYMODE_BUFFER;
+        getPlayMode(speakerIP,PLAYMODE_BUFFER);
+        ethClient_stop();
+    } 
+    else 
+    {
+        ZP.exists = false;
+    }
+    return ZP;
 }
 
 

@@ -367,7 +367,7 @@ struct FullTrackInfo // JV new, pass text-info as char string
 
 struct SonosInfo // JV new, pass text info as Char string
 {
-  uint16_t number;
+  bool exists;
   char *uid;        // Rincon-xxxx 32 bytes
   char *serial;      // 16 bytes serialnumber short - no '-'
   char *seriesid;   // Series ID or Sonos Type - 16bytes

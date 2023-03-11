@@ -119,6 +119,14 @@
 #define SONOS_GET_ZPSERIAL "SerialNumber"
 #define SONOS_GET_ZPSERIESID "SeriesID"
 
+#define SONOS_GET_ROOT "root"
+#define SONOS_GET_DEVICE "device"
+#define SONOS_GET_MODEL "modelName"
+#define SONOS_GET_DISPLAYNAME "displayName"
+#define SONOS_GET_ICONLIST "iconList"
+#define SONOS_GET_ICON "icon"
+#define SONOS_GET_ICONURL "url"
+
 // Sonos speaker state control:
 /*
 <u:Play>
@@ -346,6 +354,21 @@
 #define SONOS_STATE_TRANSISTION 4
 #define SONOS_STATE_TRANSISTION_VALUE "TRANSISTION"
 
+
+///CHUNK DECODING
+#define CHUNK_HTTP_RESPONSE 0
+#define CHUNK_HTTP_HEADERS 1
+
+#define CHUNK_UNINITIALIZED 2
+#define CHUNK_HEADER 3
+#define CHUNK_CONTENT 4
+#define CHUNK_HEADER_CLOSING 5
+#define CHUNK_FULL 6
+#define CHUNK_FULL_CLOSING 7
+#define CHUNK_FINAL 8
+#define CHUNK_WAITING_HEADER 9
+
+
 struct TrackInfo
 {
   uint16_t number;
@@ -368,15 +391,22 @@ struct FullTrackInfo // JV new, pass text-info as char string
 struct SonosInfo // JV new, pass text info as Char string
 {
   bool exists;
-  char *uid;        // Rincon-xxxx 32 bytes
-  char *serial;      // 16 bytes serialnumber short - no '-'
-  char *seriesid;   // Series ID or Sonos Type - 16bytes
-  char *zone;        // Zone name - 32 bytes
-  char *medium;      // medium - network, linein etc
-  char *status;      // Status - play/stop/pause etc
-  char *playmode;    // playmode, see SONOS_PLAY_MODE definitions
-  char *source;      // source, defined in URI , see  SONOS_SOURCE definitions
-  };
+  char *uid;        // Rincon_xxxx 32 bytes
+  char *serial;     // 24 bytes serialnumber
+  char *seriesid;   // Series ID or Sonos Type - 24bytes
+  char *zone;        // Zone name - 32 bytes  
+};
+
+struct SonosFullInfo : SonosInfo // JV new, pass text info as Char string
+{
+  char *model;          // Model Name (Sonos Playbar) - 24 bytes - root/device/modelName
+  char *displayName;    // Model Name (Playbar) - 16 bytes - root/device/displayName
+  char *icon;           // Relative path to icon - 32 bytes - root/device/iconList/icon/url
+  char *medium;         // medium - network, linein etc - 16 bytes
+  char *status;         // Status - play/stop/pause etc - 16 bytes
+  char *playmode;       // playmode, see SONOS_PLAY_MODE definitions - 16 bytes
+  char *source;         // source, defined in URI , see  SONOS_SOURCE definitions - 16 bytes
+};
 
 
 
@@ -443,6 +473,7 @@ class SonosUPnP
     TrackInfo getTrackInfo(IPAddress speakerIP, char *uriBuffer, size_t uriBufferSize);
     FullTrackInfo getFullTrackInfo(IPAddress speakerIP); // new JV - parse track info without TrackURI
     SonosInfo getSonosInfo(IPAddress speakerIP); // new JV - parse Get status/zp XLM
+    SonosFullInfo getSonosFullInfo(IPAddress speakerIP); // new JV - parse Get status/zp XLM
     uint16_t getTrackNumber(IPAddress speakerIP);
     void getTrackURI(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize);
     void getTrackCreator(IPAddress speakerIP, char *resultBuffer, size_t resultBufferSize); // new JV - parse XML Metadata attribute Creator
@@ -467,6 +498,11 @@ class SonosUPnP
 
     WiFiClient ethClient;
 
+    uint16_t _chunkSize;
+    uint16_t _chunkCount;
+    uint8_t _chunk_state;
+    void chunk_reset();
+
     void (*ethernetErrCallback)(void);
     void seek(IPAddress speakerIP, const char *mode, const char *data);
     void setAVTransportURI(IPAddress speakerIP, const char *scheme, const char *address, PGM_P metaStart_P, PGM_P metaEnd_P, const char *metaValue);
@@ -480,12 +516,15 @@ class SonosUPnP
     void ethClient_write_P(PGM_P data_P, char *buffer, size_t bufferSize);
     void ethClient_stop();
     void readback_IP(IPAddress *IPa,char* buf,char pointer,char bufsize); // New JV : readback IP from (UDP)buffer
-    bool upnpGetzp(IPAddress ip); // New JV GET command status/zp  
+    bool upnpGetZP(IPAddress ip); // New JV GET command status/zp  
+    bool upnpGetDevice(IPAddress ip); // New JV GET command status/zp  
+    uint8_t toHex(char c);  //Convert a ascii hex string to number.  Used in chunk
 
     #ifndef SONOS_WRITE_ONLY_MODE
     MicroXPath_P xPath;
     void ethClient_xPath(PGM_P *path, uint8_t pathSize, char *resultBuffer, size_t resultBufferSize);
     void ethClient_xPath2(PGM_P *path, uint8_t pathSize, char *resultBuffer, size_t resultBufferSize); // modified version to search/parse in Metadata
+    void ethClient_xPath_chunk(PGM_P *path, uint8_t pathSize, char *resultBuffer, size_t resultBufferSize); // movidifed version supporintg chuinked encoding
     void upnpGetString(IPAddress speakerIP, uint8_t upnpMessageType, PGM_P action_P, const char *field, const char *value, PGM_P *path, uint8_t pathSize, char *resultBuffer, size_t resultBufferSize);
     uint32_t getTimeInSeconds(const char *time);
     uint32_t uiPow(uint16_t base, uint16_t exp);

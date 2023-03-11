@@ -20,7 +20,6 @@
 /* Added uPnP Network Scan function  Jay Fox 2020                       */
 /************************************************************************/
 
-
 #include "SonosUPnP.h"
 
 //#define DEBUG_XPATH 1  //serial print Data read and write to xPath
@@ -61,6 +60,14 @@ const char p_ZPZone[] = PROGMEM SONOS_GET_ZPZONE;
 const char p_ZPLocalUID[] = PROGMEM SONOS_GET_ZPLOCALUID;
 const char p_ZPSerial[] = PROGMEM SONOS_GET_ZPSERIAL; 
 const char p_ZPSeriesID[] = PROGMEM SONOS_GET_ZPSERIESID; 
+
+const char p_Root[] = PROGMEM SONOS_GET_ROOT; 
+const char p_Device[] = PROGMEM SONOS_GET_DEVICE; 
+const char p_Model[] = PROGMEM SONOS_GET_MODEL; 
+const char p_DisplayName[] = PROGMEM SONOS_GET_DISPLAYNAME; 
+const char p_IconList[] = PROGMEM SONOS_GET_ICONLIST; 
+const char p_Icon[] = PROGMEM SONOS_GET_ICON; 
+const char p_IconUrl[] = PROGMEM SONOS_GET_ICONURL; 
 
 const char p_Play[] PROGMEM = SONOS_TAG_PLAY;
 const char p_SourceRinconTemplate[] PROGMEM = SONOS_SOURCE_RINCON_TEMPLATE;
@@ -166,6 +173,10 @@ char MEDIUM_BUFFER[16]= "\0";
 char STATUS_BUFFER[16]= "\0";
 char PLAYMODE_BUFFER[16]= "\0";
 char SOURCE_BUFFER[16]= "\0";
+
+char MODEL_BUFFER[24]= "\0";
+char DISPLAYNAME_BUFFER[16]= "\0";
+char ICON_BUFFER[32]= "\0";
 
 SonosUPnP::SonosUPnP(WiFiClient client, void (*ethernetErrCallback)(void)) // wireless adapted JV //GS added error callback
 {
@@ -421,8 +432,7 @@ SonosInfo SonosUPnP::getSonosInfo(IPAddress speakerIP)
 {
     SonosInfo ZP;
     ZONE_BUFFER[0]=0; UID_BUFFER[0]=0;SERIAL_BUFFER[0]=0;SERIESID_BUFFER[0]=0; // set all buffers to string "0"
-    STATUS_BUFFER[0]=0; MEDIUM_BUFFER[0]=0;SOURCE_BUFFER[0]=0;PLAYMODE_BUFFER[0]=0;
-    if (upnpGetzp(speakerIP) )
+    if (upnpGetZP(speakerIP) )
     {
         ZP.exists = true;
         xPath.reset();
@@ -431,10 +441,12 @@ SonosInfo SonosUPnP::getSonosInfo(IPAddress speakerIP)
         ZP.zone = ZONE_BUFFER;
         PGM_P zpath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPZone};
         ethClient_xPath(zpath, 3, ZONE_BUFFER, sizeof(ZONE_BUFFER));
+
         // Local UIDInfo
         ZP.uid = UID_BUFFER;
         PGM_P ypath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPLocalUID};
         ethClient_xPath(ypath, 3, UID_BUFFER, sizeof(UID_BUFFER));
+
         // Serial Info
         ZP.serial = SERIAL_BUFFER;
         PGM_P xpath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPSerial};
@@ -443,14 +455,7 @@ SonosInfo SonosUPnP::getSonosInfo(IPAddress speakerIP)
         ZP.seriesid = SERIESID_BUFFER;
         PGM_P wpath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPSeriesID};
         ethClient_xPath(wpath, 3, SERIESID_BUFFER, sizeof(SERIESID_BUFFER));
-        ZP.status = STATUS_BUFFER;
-        getState(speakerIP,STATUS_BUFFER);
-        ZP.medium = MEDIUM_BUFFER;
-        getMedium(speakerIP,MEDIUM_BUFFER);
-        ZP.source = SOURCE_BUFFER;
-        getSource(speakerIP,SOURCE_BUFFER);
-        ZP.playmode = PLAYMODE_BUFFER;
-        getPlayMode(speakerIP,PLAYMODE_BUFFER);
+        
         ethClient_stop();
     } 
     else 
@@ -460,7 +465,69 @@ SonosInfo SonosUPnP::getSonosInfo(IPAddress speakerIP)
     return ZP;
 }
 
+SonosFullInfo SonosUPnP::getSonosFullInfo(IPAddress speakerIP)
+{
+    SonosFullInfo ZP;
+    
+    MODEL_BUFFER[0]=0;ICON_BUFFER[0]=0;STATUS_BUFFER[0]=0; MEDIUM_BUFFER[0]=0;SOURCE_BUFFER[0]=0;PLAYMODE_BUFFER[0]=0;DISPLAYNAME_BUFFER[0]=0;
+    (SonosInfo&)ZP = getSonosInfo(speakerIP);
+return ZP;
+    /*
+    I probably want to do this properly with one query of device_description.
+    Problem is UID comes back as "uuid:RINCON_949F3E69CACE01400";
+    
+    For UID do this:
+    make UID_BUFFER 37 bits
 
+    char UID_BUFFER[0] = 0;
+    PGM_P ypath[] = { p_ZPSupportInfo, p_ZPInfo, p_ZPLocalUID}; //But use new ones
+    ethClient_xPath(ypath, 3, UID_BUFFER, sizeof(UID_BUFFER));
+    strncpy(ZP.uid, &UID_BUFFER[5], 32);
+
+    You really should just have a bugger and use strncpy to fill in the real values.  Much safer and avoid references
+  
+    debug with this:
+      char a[37] = "uuid:RINCON_949F3E69CACE01400";
+      char UID[32];
+      strncpy(c, &a[5], 32);
+    */
+
+    if (ZP.exists)
+    {
+      upnpGetDevice(speakerIP);   //Load the full device_info
+      xPath.reset();
+
+      //if (debug) 
+      //{xPath.debug = true;}
+      //Serial.printf("Checking { '%s', '%s', '%s' }", p_Root, p_Device, p_Model);
+      ZP.model = MODEL_BUFFER;
+      PGM_P xpath[] = { p_Root, p_Device, p_Model};
+      //! Need a way to check the header to be sure it's chunk.  I'll just assume so for now and have my chunk function fallback
+//      xPath.debug = true;
+      ethClient_xPath_chunk(xpath, 3, MODEL_BUFFER, sizeof(MODEL_BUFFER));
+      xPath.debug = false;
+      //xPath.debug = false;
+      ZP.icon = ICON_BUFFER;
+      PGM_P zpath[] = { p_Root, p_Device, p_IconList, p_Icon, p_IconUrl};
+      ethClient_xPath_chunk(zpath, 5, ICON_BUFFER, sizeof(ICON_BUFFER));
+
+      ZP.displayName = DISPLAYNAME_BUFFER;
+      PGM_P ypath[] = { p_Root, p_Device, p_DisplayName};
+      ethClient_xPath_chunk(ypath, 3, DISPLAYNAME_BUFFER, sizeof(DISPLAYNAME_BUFFER));
+
+      ZP.status = STATUS_BUFFER;
+      getState(speakerIP,STATUS_BUFFER);
+      ZP.medium = MEDIUM_BUFFER;
+      getMedium(speakerIP,MEDIUM_BUFFER);
+      ZP.source = SOURCE_BUFFER;
+      getSource(speakerIP,SOURCE_BUFFER);
+      ZP.playmode = PLAYMODE_BUFFER;
+      getPlayMode(speakerIP,PLAYMODE_BUFFER);
+      
+      ethClient_stop();
+    } 
+    return ZP;
+}
 
 uint8_t SonosUPnP::getState(IPAddress speakerIP) // Original
 {
@@ -897,11 +964,35 @@ void SonosUPnP::upnpSet(IPAddress ip, uint8_t upnpMessageType, PGM_P action_P, c
   ethClient_stop();
 }
 
-bool SonosUPnP::upnpGetzp(IPAddress ip) // JV new - simple GET status/zp command 
+bool SonosUPnP::upnpGetZP(IPAddress ip) // JV new - simple GET status/zp command 
 {
   if (!ethClient.connect(ip, UPNP_PORT)) return false;
   char buffer[50];
   ethClient_write("GET /status/zp HTTP/1.1\n");
+  sprintf_P(buffer, p_HeaderHost, ip[0], ip[1], ip[2], ip[3], UPNP_PORT); // 29 bytes max
+  ethClient_write(buffer);
+  ethClient_write("Connection: close\n");
+  ethClient_write("\n");
+
+  uint32_t start = millis();
+  while (!ethClient.available())
+  {
+    if (millis() > (start + UPNP_RESPONSE_TIMEOUT_MS))
+    {
+      //if (ethernetErrCallback) ethernetErrCallback();
+      return false;
+    }
+  }
+  return true;
+}
+
+bool SonosUPnP::upnpGetDevice(IPAddress ip) // JB new - simple GET /xml/device_description.xml command 
+{
+  if (!ethClient.connect(ip, UPNP_PORT)) return false;
+
+  chunk_reset();
+  char buffer[50];
+  ethClient_write("GET /xml/device_description.xml HTTP/1.1\n");
   sprintf_P(buffer, p_HeaderHost, ip[0], ip[1], ip[2], ip[3], UPNP_PORT); // 29 bytes max
   ethClient_write(buffer);
   ethClient_write("Connection: close\n");
@@ -1227,6 +1318,148 @@ void SonosUPnP::ethClient_xPath(PGM_P *path, uint8_t pathSize, char *resultBuffe
 #if DEBUG_XPATH  
 Serial.println(""); /*****************/
 #endif
+}
+
+
+
+uint8_t SonosUPnP::toHex(char c) {
+  if(c >= 48 && c <= 57)  //this covers 0-9
+    return c - 48;
+  else if (c >= 97 && c <= 102) // this covers A-F
+    return c - 87;
+  else
+    return 0;
+}
+
+
+void SonosUPnP::chunk_reset()
+{
+   _chunk_state = CHUNK_HTTP_RESPONSE;
+}
+
+void SonosUPnP::ethClient_xPath_chunk(PGM_P *path, uint8_t pathSize, char *resultBuffer, size_t resultBufferSize)
+{
+    xPath.setPath(path, pathSize);
+
+    char c;
+    char lastC;
+
+    while (ethClient.available()) 
+    {
+        c = ethClient.read(); 
+
+        //We need to get to the http body
+        //Just loop until we get a \r\n on a line by itself
+        //This would be c=\n and lastC=[\r,\n\r]
+        if (_chunk_state == CHUNK_HTTP_RESPONSE)
+        {
+            if (c == '\n' && lastC == '\n') {
+                _chunk_state=CHUNK_UNINITIALIZED;
+            } else if (c != '\r') {
+                lastC = c;
+            }
+        } else {
+
+        //We're out of the header portion!
+        #if DEBUG_XPATH      
+            Serial.print(c); /*****************/
+        #endif    
+        
+        switch (_chunk_state) 
+        {
+            case CHUNK_UNINITIALIZED:
+                if (isxdigit(c))
+                {
+                    _chunkSize = toHex(c);
+                    _chunk_state = CHUNK_HEADER;
+                } else {
+                    //This doesn't appear to be chunked encoded
+                    Serial.println("This doesn't appear to be chunked encoded");
+                    return ethClient_xPath(path, pathSize, resultBuffer, resultBufferSize);
+                }
+            break;
+            case CHUNK_HEADER:
+                if (isxdigit(c)) 
+                {
+                    _chunkSize = (_chunkSize << 4 ) | toHex(c);
+                } else if ((c == '\r')||(c == '\r')) 
+                {
+                    _chunk_state = CHUNK_HEADER_CLOSING;
+                }
+                break;
+            case CHUNK_HEADER_CLOSING:
+                if ((c == '\n') || (c == '\r'))
+                {
+                    if (_chunkSize == 0)
+                    {
+                        //This header had a chunk size of 0, which means it's the closing one
+                        _chunk_state = CHUNK_FINAL;
+                    } else 
+                    {
+                        _chunk_state = CHUNK_CONTENT;
+                        _chunkCount =1;
+                    }          
+                } 
+            break;
+            case CHUNK_CONTENT:
+                if (_chunkCount == _chunkSize) 
+                {
+                    _chunk_state = CHUNK_FULL;
+                } 
+                if ( xPath.getValue(c, resultBuffer, resultBufferSize)) return;
+                _chunkCount++;
+                break;
+            case CHUNK_FULL:
+                if ((c == '\r') || (c == '\n'))
+                {
+                    _chunk_state = CHUNK_FULL_CLOSING;
+                } 
+                break;
+            case CHUNK_FULL_CLOSING:
+                if ((c == '\r') || (c == '\n'))
+                {
+                    _chunk_state = CHUNK_UNINITIALIZED;
+                } else if(isxdigit(c)) {
+                    _chunkSize = toHex(c);
+                    _chunk_state = CHUNK_HEADER;
+                } 
+                break;
+            case CHUNK_FINAL:
+                    //You possible can pull some headers out here, but I don't think we need to
+                    Serial.println("YAY!! YOU READ IT ALL!!");
+                    return;
+            break;
+            //Serial.println("");
+        }
+        lastC = c;
+        #if DEBUG_XPATH  
+            Serial.println(""); /*****************/
+        #endif
+
+        // if (c == '\r')        
+        //     {
+        //         if (lastC == '\n') {
+        //             Serial.println("\\r");
+        //         } else {
+        //             Serial.print("\\r");
+        //         }
+        //     } else  if (c == '\n') {
+        //         if (lastC == '\r') {
+        //             Serial.println("\\n");
+        //         } else {
+        //             Serial.print("\\n");
+        //         }
+        //     } else {
+        //         Serial.print(c);
+        //     }
+        
+        //     lastC = c;
+        }
+
+
+        
+        
+    }
 }
 
 // JV
